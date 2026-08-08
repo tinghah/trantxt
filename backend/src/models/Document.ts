@@ -14,7 +14,7 @@ import { Translation } from './Translation';
 
 @Entity('documents')
 @Index(['userId'])
-@Index(['createdAt'])
+@Index(['uploadDate'])
 export class Document {
   @PrimaryColumn('uuid')
   id: string = uuidv4();
