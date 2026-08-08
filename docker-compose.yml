@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: trantxt-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trantxt
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trantxt-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: trantxt-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/trantxt
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-in-production
+      ENCRYPTION_KEY: your-encryption-key-32-chars-long!
+      FILE_UPLOAD_DIR: /app/uploads
+      MAX_FILE_SIZE_MB: 100
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: AdminPassword123!
+      CORS_ORIGIN: http://localhost:3000
+      LOG_LEVEL: debug
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/backend/src
+      - backend_uploads:/app/uploads
+    networks:
+      - trantxt-network
+    command: npm run dev
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: trantxt-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - trantxt-network
+    environment:
+      VITE_API_URL: http://backend:3001
+
+volumes:
+  postgres_data:
+  backend_uploads:
+
+networks:
+  trantxt-network:
+    driver: bridge

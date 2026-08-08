@@ -1,0 +1,99 @@
+import { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+
+export const Header = () => {
+  const { user, logout, isAuthenticated } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <header className="bg-white border-b border-neutral-200 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">
+              T
+            </div>
+            <span className="font-bold text-lg text-primary-600">TranTxt</span>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-8">
+            <Link
+              to="/dashboard"
+              className={`text-sm font-medium ${
+                location.pathname === '/dashboard' ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/upload"
+              className={`text-sm font-medium ${
+                location.pathname === '/upload' ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Upload
+            </Link>
+            <Link
+              to="/history"
+              className={`text-sm font-medium ${
+                location.pathname === '/history' ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              History
+            </Link>
+            {user?.isAdmin && (
+              <Link
+                to="/admin/dashboard"
+                className={`text-sm font-medium ${
+                  location.pathname.startsWith('/admin') ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
+                }`}
+              >
+                Admin
+              </Link>
+            )}
+          </nav>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-neutral-900">{user?.name}</p>
+              <p className="text-xs text-neutral-500">{user?.email}</p>
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold"
+              >
+                {user?.name.charAt(0).toUpperCase()}
+              </button>
+
+              {isMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-2 z-50">
+                  <Link to="/profile" className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50">
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error/10"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
