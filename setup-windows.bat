@@ -1,5 +1,5 @@
 @echo off
-REM TranTxt - Local Setup Script for Windows
+REM TranTxt - Local Setup Script for Windows (PostgreSQL 18 Compatible)
 REM This script helps setup the application locally without Docker
 
 echo.
@@ -7,6 +7,10 @@ echo ========================================
 echo   TranTxt - Local Setup Script
 echo ========================================
 echo.
+
+REM Set PostgreSQL 18 path
+set PGPATH=C:\Program Files\PostgreSQL\18\bin
+set PSQL="%PGPATH%\psql.exe"
 
 REM Check if Node.js is installed
 node -v >nul 2>&1
@@ -18,24 +22,23 @@ if errorlevel 1 (
 )
 echo [OK] Node.js found: & node -v
 
-REM Check if PostgreSQL is installed
-psql --version >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] PostgreSQL is not installed!
-    echo Please download from: https://www.postgresql.org/download/windows/
+REM Check if PostgreSQL 18 is installed
+if not exist "%PGPATH%\psql.exe" (
+    echo [ERROR] PostgreSQL is not installed at %PGPATH%!
+    echo Please install PostgreSQL from: https://www.postgresql.org/download/windows/
     pause
     exit /b 1
 )
-echo [OK] PostgreSQL found: & psql --version
+echo [OK] PostgreSQL found: & %PSQL% --version
 
 echo.
 echo Step 1: Creating database and user...
 REM Create database (this will prompt for password)
-echo Please enter PostgreSQL root password when prompted:
-psql -U postgres -c "CREATE DATABASE trantxt;" 2>nul
-psql -U postgres -c "CREATE USER trantxt_user WITH PASSWORD 'secure_password_123';" 2>nul
-psql -U postgres -c "ALTER ROLE trantxt_user SET client_encoding TO 'utf8';" 2>nul
-psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE trantxt TO trantxt_user;" 2>nul
+echo Please enter PostgreSQL postgres user password when prompted:
+%PSQL% -U postgres -c "CREATE DATABASE trantxt;" 2>nul
+%PSQL% -U postgres -c "CREATE USER trantxt_user WITH PASSWORD 'secure_password_123';" 2>nul
+%PSQL% -U postgres -c "ALTER ROLE trantxt_user SET client_encoding TO 'utf8';" 2>nul
+%PSQL% -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE trantxt TO trantxt_user;" 2>nul
 echo [OK] Database created
 
 echo.
