@@ -38,11 +38,11 @@ export const Signup = () => {
     if (!validate()) return;
 
     try {
-      await signup({ email, password, name });
+      await signup({ email, password, name, confirmPassword });
       toast.success('Account created! Welcome to TranTxt');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Signup failed');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Signup failed');
     }
   };
 

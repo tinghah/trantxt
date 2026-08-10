@@ -4,17 +4,19 @@ import { LoginRequest, SignupRequest, AuthResponse, ResetPasswordRequest, NewPas
 export const authService = {
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const response = await api.post('/api/auth/login', credentials);
-    const { token, refreshToken, user } = response.data.data;
+    const { token, user } = response.data.data;
+    const refreshToken = response.data.data.refreshToken || '';
     localStorage.setItem('accessToken', token);
-    localStorage.setItem('refreshToken', refreshToken);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
     return { token, refreshToken, user };
   },
 
   signup: async (data: SignupRequest): Promise<AuthResponse> => {
     const response = await api.post('/api/auth/signup', data);
-    const { token, refreshToken, user } = response.data.data;
+    const { token, user } = response.data.data;
+    const refreshToken = response.data.data.refreshToken || '';
     localStorage.setItem('accessToken', token);
-    localStorage.setItem('refreshToken', refreshToken);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
     return { token, refreshToken, user };
   },
 

@@ -16,6 +16,7 @@ export interface SignupRequest {
   email: string;
   password: string;
   name: string;
+  confirmPassword: string;
 }
 
 export interface AuthResponse {
