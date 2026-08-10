@@ -106,7 +106,7 @@ export class DocumentController {
         success: true,
         statusCode: 200,
         message: 'Documents retrieved',
-        data: { documents },
+        data: documents,
         pagination: {
           page,
           limit,

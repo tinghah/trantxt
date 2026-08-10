@@ -91,6 +91,7 @@ export class AuthController {
             isApproved: user.isApproved,
           },
           token,
+          refreshToken,
         },
       });
     } catch (error) {
@@ -187,6 +188,7 @@ export class AuthController {
             isApproved: user.isApproved,
           },
           token,
+          refreshToken,
         },
       });
     } catch (error) {
@@ -204,7 +206,7 @@ export class AuthController {
    */
   async refreshToken(req: Request, res: Response) {
     try {
-      const refreshToken = req.cookies.refreshToken;
+      const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
 
       if (!refreshToken) {
         return res.status(401).json({

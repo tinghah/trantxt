@@ -3,6 +3,8 @@ import { UploadArea } from '../components/Upload/UploadArea';
 import { FilePreview } from '../components/Upload/FilePreview';
 import { useState } from 'react';
 import { useUpload } from '../hooks/useUpload';
+import { useApi } from '../hooks/useApi';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export const Upload = () => {
@@ -10,9 +12,11 @@ export const Upload = () => {
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [outputFormat, setOutputFormat] = useState('pdf');
   const { upload, error: uploadError } = useUpload();
+  const { post } = useApi();
   const [isUploading, setIsUploading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleFilesSelected = async (selectedFiles: File[]) => {
+  const handleFilesSelected = (selectedFiles: File[]) => {
     setFiles([...files, ...selectedFiles]);
   };
 
@@ -28,9 +32,32 @@ export const Upload = () => {
 
     try {
       setIsUploading(true);
-      const results = await upload(files);
+      const results = await upload(files, { targetLanguage, outputFormat });
+
+      if (results.length === 0) {
+        toast.error(uploadError || 'Upload failed');
+        return;
+      }
+
       toast.success(`${results.length} file(s) uploaded successfully`);
+
+      // Create translation requests for each uploaded document
+      const docIds = results.map((r: any) => r.id || r.documentId).filter(Boolean);
+      if (docIds.length > 0) {
+        try {
+          await post('/api/translations', {
+            documentId: docIds[0],
+            targetLanguages: [targetLanguage],
+            outputFormat,
+          });
+          toast.success('Translation request created');
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Could not create translation request');
+        }
+      }
+
       setFiles([]);
+      setTimeout(() => navigate('/history'), 1500);
     } catch (error) {
       toast.error(uploadError || 'Upload failed');
     } finally {
@@ -76,7 +103,7 @@ export const Upload = () => {
               </div>
 
               <button onClick={handleUpload} disabled={isUploading} className="btn-primary w-full">
-                {isUploading ? 'Uploading...' : 'Upload & Translate'}
+                {isUploading ? 'Uploading & Translating...' : 'Upload & Translate'}
               </button>
             </div>
           )}

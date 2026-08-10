@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { userService } from '../services/userService';
 import { quotaService } from '../services/quotaService';
 import { auditService } from '../services/auditService';
+import { translationService } from '../services/translationService';
 import { CONSTANTS } from '../config/constants';
 
 export class UserController {
@@ -119,7 +120,7 @@ export class UserController {
         success: true,
         statusCode: 200,
         message: 'Usage metrics retrieved',
-        data: { metrics },
+        data: metrics,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get usage';
@@ -154,6 +155,53 @@ export class UserController {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get quota';
+      res.status(500).json({
+        success: false,
+        statusCode: 500,
+        message,
+      });
+    }
+  }
+
+  /**
+   * Get translation history
+   */
+  async getHistory(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          statusCode: 401,
+          message: 'Unauthorized',
+        });
+      }
+
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(
+        CONSTANTS.MAX_PAGE_SIZE,
+        parseInt(req.query.limit as string) || CONSTANTS.DEFAULT_PAGE_SIZE
+      );
+
+      const { translations, total } = await translationService.getUserTranslations(
+        req.user.id,
+        page,
+        limit
+      );
+
+      res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: 'Translation history retrieved',
+        data: translations,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get history';
       res.status(500).json({
         success: false,
         statusCode: 500,

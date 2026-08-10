@@ -5,11 +5,14 @@ import { uploadRateLimiter } from '../middleware/rateLimiter';
 import multer from 'multer';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 
 router.use(authMiddleware);
 
-router.post('/upload', uploadRateLimiter, upload.array('files', 10), (req, res) =>
+router.post('/upload', uploadRateLimiter, upload.any(), (req, res) =>
   documentController.uploadDocuments(req, res)
 );
 router.get('/', (req, res) => documentController.getDocuments(req, res));

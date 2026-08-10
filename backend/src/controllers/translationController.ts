@@ -121,7 +121,7 @@ export class TranslationController {
         success: true,
         statusCode: 200,
         message: 'Translations retrieved',
-        data: { translations },
+        data: translations,
         pagination: {
           page,
           limit,

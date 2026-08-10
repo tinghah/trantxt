@@ -14,9 +14,12 @@ export const Profile = () => {
 
   useEffect(() => {
     setIsLoading(true);
-    get('/api/user/profile').then((data) => {
-      setFormData({ name: data.name, email: data.email });
-    }).finally(() => setIsLoading(false));
+    get('/api/user/profile')
+      .then((data: any) => {
+        const u = data?.user || data;
+        setFormData({ name: u?.name || '', email: u?.email || '' });
+      })
+      .finally(() => setIsLoading(false));
   }, [get]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +42,10 @@ export const Profile = () => {
     );
   }
 
+  const profileUser: any = (profile as any)?.user || profile;
+  const displayName = profileUser?.name || user?.name || '';
+  const displayEmail = profileUser?.email || user?.email || '';
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header />
@@ -48,11 +55,11 @@ export const Profile = () => {
         <div className="card">
           <div className="flex items-center gap-4 mb-8 pb-8 border-b border-neutral-200">
             <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-2xl font-bold">
-              {user?.name.charAt(0).toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-neutral-900">{profile?.name}</h2>
-              <p className="text-neutral-600">{profile?.email}</p>
+              <h2 className="text-xl font-bold text-neutral-900">{displayName}</h2>
+              <p className="text-neutral-600">{displayEmail}</p>
             </div>
           </div>
 
@@ -89,15 +96,15 @@ export const Profile = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-neutral-600 mb-1">Name</p>
-                <p className="font-medium text-neutral-900">{profile?.name}</p>
+                <p className="font-medium text-neutral-900">{displayName}</p>
               </div>
               <div>
                 <p className="text-sm text-neutral-600 mb-1">Email</p>
-                <p className="font-medium text-neutral-900">{profile?.email}</p>
+                <p className="font-medium text-neutral-900">{displayEmail}</p>
               </div>
               <div>
                 <p className="text-sm text-neutral-600 mb-1">Account Status</p>
-                <p className="font-medium text-neutral-900">{profile?.isApproved ? 'Approved' : 'Pending Approval'}</p>
+                <p className="font-medium text-neutral-900">{profileUser?.isApproved ? 'Approved' : 'Pending Approval'}</p>
               </div>
               <button onClick={() => setIsEditing(true)} className="btn-outline">
                 Edit Profile
@@ -111,11 +118,11 @@ export const Profile = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-neutral-600 mb-1">Total Translations</p>
-              <p className="text-2xl font-bold text-primary-600">{profile?.totalTranslations}</p>
+              <p className="text-2xl font-bold text-primary-600">{profileUser?.totalTranslations || 0}</p>
             </div>
             <div>
               <p className="text-sm text-neutral-600 mb-1">Total Pages</p>
-              <p className="text-2xl font-bold text-secondary-600">{profile?.totalPages}</p>
+              <p className="text-2xl font-bold text-secondary-600">{profileUser?.totalPages || 0}</p>
             </div>
           </div>
         </div>

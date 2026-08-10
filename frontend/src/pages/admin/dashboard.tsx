@@ -1,5 +1,6 @@
 import { Header } from '../../components/Common/Header';
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { AdminStats } from '../../types';
 
@@ -70,15 +71,15 @@ export const AdminDashboard = () => {
           <div className="card">
             <h2 className="text-lg font-bold text-neutral-900 mb-4">Quick Actions</h2>
             <div className="space-y-2">
-              <a href="/admin/users" className="block btn-outline w-full text-center">
+              <Link to="/admin/users" className="block btn-outline w-full text-center">
                 Manage Users
-              </a>
-              <a href="/admin/groups" className="block btn-outline w-full text-center">
+              </Link>
+              <Link to="/admin/groups" className="block btn-outline w-full text-center">
                 Manage Groups
-              </a>
-              <a href="/admin/translations" className="block btn-outline w-full text-center">
+              </Link>
+              <Link to="/admin/translations" className="block btn-outline w-full text-center">
                 Review Translations
-              </a>
+              </Link>
             </div>
           </div>
         </div>
