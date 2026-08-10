@@ -48,7 +48,17 @@ export class AuthController {
         });
       }
 
-      const user = await userService.createUser(email, name, password);
+      // Auto-assign "Users" group
+      let defaultGroupId: string | undefined;
+      try {
+        const { AppDataSource } = require('../config/database');
+        const { UserGroup } = require('../models/UserGroup');
+        const groupRepo = AppDataSource.getRepository(UserGroup);
+        const usersGroup = await groupRepo.findOne({ where: { name: 'Users' } });
+        if (usersGroup) defaultGroupId = usersGroup.id;
+      } catch {}
+
+      const user = await userService.createUser(email, name, password, defaultGroupId);
 
       await auditService.logAction(
         user.id,

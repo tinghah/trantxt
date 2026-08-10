@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Toast } from './components/Common/Toast';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { useEffect } from 'react';
 
 // Pages
@@ -55,7 +56,7 @@ function App() {
   }, [isAuthenticated, user]);
 
   return (
-    <>
+    <ThemeProvider>
       <Toast />
       <Router>
         <Routes>
@@ -182,7 +183,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
-    </>
+    </ThemeProvider>
   );
 }
 
