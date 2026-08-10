@@ -682,6 +682,137 @@ export class AdminController {
       });
     }
   }
+
+  /**
+   * Promote user to admin
+   */
+  async promoteUser(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, statusCode: 401, message: 'Unauthorized' });
+      }
+      const { id } = req.params;
+      const user = await this.userRepository.findOne({ where: { id } });
+      if (!user) {
+        return res.status(404).json({ success: false, statusCode: 404, message: 'User not found' });
+      }
+      user.isAdmin = true;
+      const saved = await this.userRepository.save(user);
+
+      await this.auditRepository.save(
+        this.auditRepository.create({
+          userId: req.user.id,
+          action: 'promote_to_admin',
+          resourceType: CONSTANTS.RESOURCE_TYPES.USER,
+          resourceId: id,
+          changes: { isAdmin: true },
+          ipAddress: req.ipAddress || '',
+          status: 'success',
+        })
+      );
+
+      res.status(200).json({ success: true, statusCode: 200, message: 'User promoted to admin', data: { user: this.sanitizeUser(saved) } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to promote user';
+      res.status(500).json({ success: false, statusCode: 500, message });
+    }
+  }
+
+  /**
+   * Demote admin to regular user
+   */
+  async demoteUser(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, statusCode: 401, message: 'Unauthorized' });
+      }
+      const { id } = req.params;
+      if (id === req.user.id) {
+        return res.status(400).json({ success: false, statusCode: 400, message: 'Cannot demote yourself' });
+      }
+      const user = await this.userRepository.findOne({ where: { id } });
+      if (!user) {
+        return res.status(404).json({ success: false, statusCode: 404, message: 'User not found' });
+      }
+      user.isAdmin = false;
+      const saved = await this.userRepository.save(user);
+      res.status(200).json({ success: true, statusCode: 200, message: 'User demoted', data: { user: this.sanitizeUser(saved) } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to demote user';
+      res.status(500).json({ success: false, statusCode: 500, message });
+    }
+  }
+
+  /**
+   * Search users for group management
+   */
+  async searchUsers(req: Request, res: Response) {
+    try {
+      const query = (req.query.q as string) || '';
+      const qb = this.userRepository.createQueryBuilder('user').leftJoinAndSelect('user.group', 'group');
+      if (query) {
+        qb.where('user.name ILIKE :q OR user.email ILIKE :q', { q: `%${query}%` });
+      }
+      const users = await qb.take(20).getMany();
+      res.status(200).json({ success: true, statusCode: 200, message: 'Users found', data: users.map((u) => this.sanitizeUser(u)) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to search users';
+      res.status(500).json({ success: false, statusCode: 500, message });
+    }
+  }
+
+  /**
+   * Add member to group
+   */
+  async addGroupMember(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, statusCode: 401, message: 'Unauthorized' });
+      }
+      const { id } = req.params;
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ success: false, statusCode: 400, message: 'userId is required' });
+      }
+      const group = await this.groupRepository.findOne({ where: { id } });
+      if (!group) {
+        return res.status(404).json({ success: false, statusCode: 404, message: 'Group not found' });
+      }
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        return res.status(404).json({ success: false, statusCode: 404, message: 'User not found' });
+      }
+      user.groupId = id;
+      await this.userRepository.save(user);
+      res.status(200).json({ success: true, statusCode: 200, message: 'User added to group', data: { user: this.sanitizeUser(user) } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add member';
+      res.status(500).json({ success: false, statusCode: 500, message });
+    }
+  }
+
+  /**
+   * Remove member from group
+   */
+  async removeGroupMember(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, statusCode: 401, message: 'Unauthorized' });
+      }
+      const { userId } = req.params;
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        return res.status(404).json({ success: false, statusCode: 404, message: 'User not found' });
+      }
+      const usersGroup = await this.groupRepository.findOne({ where: { name: 'Users' } });
+      user.groupId = usersGroup?.id || (null as any);
+      await this.userRepository.save(user);
+      res.status(200).json({ success: true, statusCode: 200, message: 'User removed from group', data: { user: this.sanitizeUser(user) } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to remove member';
+      res.status(500).json({ success: false, statusCode: 500, message });
+    }
+  }
 }
 
 export const adminController = new AdminController();

@@ -126,3 +126,144 @@ body {
 ::-webkit-scrollbar-thumb {
   @apply bg-neutral-300 rounded-full hover:bg-neutral-400;
 }
+
+/* ===================== DARK MODE - TERMINAL THEME ===================== */
+.dark {
+  --color-bg: #0a0a0a;
+  --color-surface: #0d0d0d;
+  --color-surface-hover: #111111;
+  --color-border: #1a3a1a;
+  --color-text: #00ff41;
+  --color-text-secondary: #00cc33;
+  --color-text-muted: #336633;
+  --color-accent: #00ff41;
+  --color-accent-gold: #ffd700;
+  --color-danger: #ff4444;
+}
+
+.dark body {
+  @apply bg-[#0a0a0a] text-[#00ff41];
+}
+
+.dark .card,
+.dark .card-hover {
+  @apply bg-[#0d0d0d] border-[#1a3a1a] text-[#00ff41];
+}
+
+.dark .card-hover:hover {
+  @apply bg-[#111111] border-[#2a5a2a];
+}
+
+.dark .input-base {
+  @apply bg-[#0d0d0d] border-[#1a3a1a] text-[#00ff41];
+}
+
+.dark .input-base:focus {
+  @apply ring-[#00ff41] border-[#00ff41];
+}
+
+.dark .btn-primary {
+  @apply bg-[#1a3a1a] text-[#00ff41] hover:bg-[#2a5a2a];
+}
+
+.dark .btn-outline {
+  @apply border-[#1a3a1a] text-[#00ff41] hover:bg-[#0d1f0d];
+}
+
+.dark .btn-ghost {
+  @apply text-[#00ff41] hover:bg-[#1a3a1a];
+}
+
+.dark .btn-secondary {
+  @apply bg-[#2a2a0a] text-[#ffd700] hover:bg-[#3a3a0a];
+}
+
+.dark select,
+.dark select.input-base {
+  @apply bg-[#0d0d0d] border-[#1a3a1a] text-[#00ff41];
+}
+
+.dark table {
+  @apply text-[#00ff41];
+}
+
+.dark thead {
+  @apply bg-[#0d0d0d] border-[#1a3a1a];
+}
+
+.dark tbody tr {
+  @apply border-[#1a3a1a];
+}
+
+.dark tbody tr:hover {
+  @apply bg-[#0d1f0d];
+}
+
+.dark .bg-neutral-50 {
+  @apply bg-[#0d0d0d];
+}
+
+.dark .bg-neutral-100 {
+  @apply bg-[#111111];
+}
+
+.dark .bg-white {
+  @apply bg-[#0d0d0d];
+}
+
+.dark .text-neutral-900 {
+  @apply text-[#00ff41];
+}
+
+.dark .text-neutral-800 {
+  @apply text-[#00cc33];
+}
+
+.dark .text-neutral-700 {
+  @apply text-[#00cc33];
+}
+
+.dark .text-neutral-600 {
+  @apply text-[#336633];
+}
+
+.dark .text-neutral-500 {
+  @apply text-[#336633];
+}
+
+.dark .border-neutral-200 {
+  @apply border-[#1a3a1a];
+}
+
+.dark .border-neutral-300 {
+  @apply border-[#2a5a2a];
+}
+
+.dark pre {
+  @apply bg-[#0a0a0a] text-[#00ff41] border-[#1a3a1a];
+}
+
+.dark code {
+  @apply bg-[#1a3a1a] text-[#00ff41];
+}
+
+/* Terminal-style glow effect for dark mode */
+.dark .card {
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.05);
+}
+
+.dark .card:hover {
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+}
+
+/* Terminal cursor blink animation for dark mode */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.dark .cursor-blink::after {
+  content: '_';
+  animation: blink 1s infinite;
+  color: #00ff41;
+}
