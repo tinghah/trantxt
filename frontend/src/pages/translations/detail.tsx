@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { TranslationDetail as TranslationDetailType } from '../../types';
 import { formatDate, formatLanguage } from '../../utils/formatters';
 import { DocumentPreviewModal } from '../../components/Common/DocumentPreviewModal';
+import { downloadTranslation } from '../../utils/download';
 import toast from 'react-hot-toast';
 
 const statusBadge = (status: string) => {
@@ -24,6 +25,7 @@ export const TranslationDetail = () => {
   const { data: translation, get } = useApi<TranslationDetailType>();
   const [isLoading, setIsLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<'txt' | 'pdf' | 'docx'>('txt');
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
@@ -37,30 +39,39 @@ export const TranslationDetail = () => {
     return () => clearInterval(interval);
   }, [isPending, id, get]);
 
-  const handleDownload = async () => {
+  const handleDownload = async (format?: 'txt' | 'pdf' | 'docx' | 'png') => {
     if (!id) return;
     setDownloading(true);
-    try {
-      const response = await fetch(`/api/translations/${id}/download`);
-      if (!response.ok) {
-        const err = await response.json().catch(() => null);
-        throw new Error(err?.message || 'Download failed');
+    if (format === 'png') {
+      // Download the translated image directly
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`/api/translations/${id}/image`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => null);
+          throw new Error(err?.message || 'Download failed');
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const cd = response.headers.get('Content-Disposition') || '';
+        const match = cd.match(/filename="(.+?)"/);
+        a.href = url;
+        a.download = match ? match[1] : `${translation?.documentName || 'translation'}-translated.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('Download started');
+      } catch (error: any) {
+        toast.error(error.message || 'Download failed');
       }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const cd = response.headers.get('Content-Disposition') || '';
-      const match = cd.match(/filename="(.+?)"/);
-      a.href = url;
-      a.download = match ? match[1] : `translation-${id}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success('Download started');
-    } catch (error: any) {
-      toast.error(error.message || 'Download failed');
-    } finally { setDownloading(false); }
+    } else {
+      await downloadTranslation(id, translation?.documentName || 'translation', format || downloadFormat);
+    }
+    setDownloading(false);
   };
 
   if (isLoading) {
@@ -148,21 +159,32 @@ export const TranslationDetail = () => {
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3 pt-4 border-t border-neutral-200">
+          <div className="flex flex-wrap gap-3 pt-4 border-t border-neutral-200 items-center">
             {translation.status === 'completed' && (
-              <button onClick={handleDownload} disabled={downloading} className="action-btn-success">
-                {downloading ? (
-                  <>
-                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Download Translated
-                  </>
-                )}
-              </button>
+              <>
+                <select
+                  value={downloadFormat}
+                  onChange={(e) => setDownloadFormat(e.target.value as any)}
+                  className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm font-medium bg-white dark:bg-neutral-900"
+                >
+                  <option value="txt">TXT</option>
+                  <option value="pdf">PDF</option>
+                  <option value="docx">DOCX</option>
+                </select>
+                <button onClick={() => handleDownload()} disabled={downloading} className="action-btn-success">
+                  {downloading ? (
+                    <>
+                      <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      Download Translated
+                    </>
+                  )}
+                </button>
+              </>
             )}
             {translation.documentId && (
               <button onClick={() => setShowPreview(true)} className="action-btn-outline">
@@ -181,27 +203,58 @@ export const TranslationDetail = () => {
 
         {/* Translation Content */}
         {translation.status === 'completed' ? (
-          <div className="space-y-6">
-            {translatedEntries.map(([lang, content]) => (
-              <div key={lang} className="card">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4">{formatLanguage(lang)} — Compare</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold mb-2">Original ({formatLanguage(translation.sourceLanguage)})</p>
-                    <div className="bg-neutral-50 p-4 rounded-lg text-sm text-neutral-800 max-h-96 overflow-y-auto whitespace-pre-wrap border border-neutral-200">
-                      {originalText || '(no extractable text)'}
+          (translation.translatedContent as any)?._isImage ? (
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-neutral-900">Translated Image</h2>
+                <button onClick={() => handleDownload('png')} disabled={downloading} className="action-btn-success">
+                  {downloading ? (
+                    <>
+                      <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      Download Image
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200 flex justify-center">
+                <img
+                  src={`/api/translations/${translation.id}/image?token=${localStorage.getItem('accessToken') || ''}`}
+                  alt="Translated"
+                  className="max-w-full max-h-[70vh] object-contain"
+                />
+              </div>
+              <p className="text-sm text-neutral-500 mt-3">
+                Text was read from the original image, translated, and re-rendered in place.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {translatedEntries.map(([lang, content]) => (
+                <div key={lang} className="card">
+                  <h2 className="text-lg font-semibold text-neutral-900 mb-4">{formatLanguage(lang)} — Compare</h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold mb-2">Original ({formatLanguage(translation.sourceLanguage)})</p>
+                      <div className="bg-neutral-50 p-4 rounded-lg text-sm text-neutral-800 max-h-96 overflow-y-auto whitespace-pre-wrap border border-neutral-200">
+                        {originalText || '(no extractable text)'}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold mb-2">Translated ({formatLanguage(lang)})</p>
-                    <div className="bg-green-50 p-4 rounded-lg text-sm text-neutral-800 max-h-96 overflow-y-auto whitespace-pre-wrap border border-green-200">
-                      {typeof content === 'string' ? content : '(no content)'}
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold mb-2">Translated ({formatLanguage(lang)})</p>
+                      <div className="bg-green-50 p-4 rounded-lg text-sm text-neutral-800 max-h-96 overflow-y-auto whitespace-pre-wrap border border-green-200">
+                        {typeof content === 'string' ? content : '(no content)'}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         ) : (
           <div className="card text-center py-12">
             <div className="text-4xl mb-4">{isPending ? '⏳' : '📄'}</div>

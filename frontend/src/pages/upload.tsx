@@ -4,7 +4,7 @@ import { useUpload } from '../hooks/useUpload';
 import { useApi } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Language, ProvidersResponse } from '../types';
+import { Language, ProvidersResponse, ApiKeyRecord } from '../types';
 import { formatFileSize } from '../utils/formatters';
 
 const fileIcon = (name: string) => {
@@ -15,18 +15,25 @@ const fileIcon = (name: string) => {
   return '📄';
 };
 
+const isImageFile = (name: string) => {
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 'webp'].includes(ext);
+};
+
 export const Upload = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [targetLanguage, setTargetLanguage] = useState('');
-  const [sourceLanguage, setSourceLanguage] = useState('en');
+  const [sourceLanguage, setSourceLanguage] = useState('auto');
   const [outputFormat, setOutputFormat] = useState('pdf');
   const [provider, setProvider] = useState('deepl');
+  const [useImageMode, setUseImageMode] = useState(false);
   const { uploads, upload, error: uploadError, clearProgress } = useUpload();
   const { get, post } = useApi();
   const [isUploading, setIsUploading] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [providersInfo, setProvidersInfo] = useState<ProvidersResponse | null>(null);
+  const [userKeys, setUserKeys] = useState<ApiKeyRecord[]>([]);
   const [completedTranslationId, setCompletedTranslationId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const navigate = useNavigate();
@@ -44,7 +51,19 @@ export const Upload = () => {
       const configured = res?.providers?.find((p: any) => p.serverKeyConfigured);
       if (configured) setProvider(configured.id);
     });
+    get('/api/config/user/api-keys').then((res: any) => {
+      setUserKeys(Array.isArray(res) ? res : []);
+    }).catch(() => {});
   }, [get]);
+
+  // Auto-enable image mode when a single image is selected
+  useEffect(() => {
+    if (files.length === 1 && isImageFile(files[0].name)) {
+      setUseImageMode(true);
+    } else if (files.length > 1) {
+      setUseImageMode(false);
+    }
+  }, [files]);
 
   const handleFilesSelected = useCallback((selectedFiles: File[]) => {
     const valid: File[] = [];
@@ -105,16 +124,27 @@ export const Upload = () => {
       if (docIds.length > 0) {
         try {
           setIsTranslating(true);
-          toast.loading('Translating your document...', { id: 'translating' });
-          const translationResult = await post('/api/translations', {
-            documentId: docIds[0],
-            targetLanguages: [targetLanguage],
-            outputFormat,
-            provider,
-            sourceLanguage,
-          });
-          const translationId = (translationResult as any)?.id;
-          toast.success('Translation completed!', { id: 'translating' });
+          toast.loading(useImageMode ? 'Translating image...' : 'Translating your document...', { id: 'translating' });
+          let translationId: string | null = null;
+          if (useImageMode) {
+            const res: any = await post('/api/translations/image', {
+              documentId: docIds[0],
+              targetLanguage,
+              provider,
+              sourceLanguage,
+            });
+            translationId = res?.translationId || null;
+          } else {
+            const res: any = await post('/api/translations', {
+              documentId: docIds[0],
+              targetLanguages: [targetLanguage],
+              outputFormat,
+              provider,
+              sourceLanguage,
+            });
+            translationId = res?.id || null;
+          }
+          toast.success(useImageMode ? 'Image translated!' : 'Translation completed!', { id: 'translating' });
           if (translationId) {
             setCompletedTranslationId(translationId);
           }
@@ -136,6 +166,11 @@ export const Upload = () => {
   const overallProgress = uploadEntries.length > 0
     ? Math.round(uploadEntries.reduce((sum, u) => sum + u.progress, 0) / uploadEntries.length)
     : 0;
+
+  // Group providers into server-side vs BYOK
+  const serverProviders = providersInfo?.providers?.filter((p) => p.serverKeyConfigured) || [];
+  const userProviderIds = new Set(userKeys.map((k) => k.provider));
+  const byokProviders = providersInfo?.providers?.filter((p) => userProviderIds.has(p.id)) || [];
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -189,7 +224,7 @@ export const Upload = () => {
               </h3>
               <p className="text-neutral-500 mb-4">or click to browse</p>
               <p className="text-sm text-neutral-400">
-                Supported: PDF, DOCX, JPG, PNG, GIF, BMP, TIFF (max 50MB each)
+                Supported: PDF, DOCX, TXT, MD, CSV, EPUB, JPG, PNG, GIF, BMP, TIFF, WebP (max 50MB each)
               </p>
             </div>
 
@@ -270,7 +305,9 @@ export const Upload = () => {
                     <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-primary-400 border-t-transparent animate-spin"></div>
                   </div>
                   <div>
-                    <p className="font-semibold text-primary-900">Translating your document...</p>
+                    <p className="font-semibold text-primary-900">
+                      {useImageMode ? 'Translating text inside image...' : 'Translating your document...'}
+                    </p>
                     <p className="text-sm text-primary-700">This may take a moment depending on file size.</p>
                   </div>
                 </div>
@@ -281,14 +318,23 @@ export const Upload = () => {
             {files.length > 0 && !isUploading && !isTranslating && (
               <div className="mt-6 card space-y-5">
                 <h3 className="font-semibold text-neutral-900">Translation Settings</h3>
+
+                {useImageMode && (
+                  <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm text-primary-800">
+                    🖼️ Image detected — text will be read from the image, translated, and re-rendered onto the image.
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-1.5">Source Language</label>
                     <select value={sourceLanguage} onChange={(e) => setSourceLanguage(e.target.value)} className="input-base">
+                      <option value="auto">Auto Detect (XX)</option>
                       {languages.map((lang) => (
                         <option key={lang.code} value={lang.code}>{lang.name} ({lang.code})</option>
                       ))}
                     </select>
+                    <p className="text-xs text-neutral-400 mt-1">Auto Detect will try to identify the language automatically.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-1.5">Target Language</label>
@@ -299,20 +345,38 @@ export const Upload = () => {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-1.5">Translation Provider</label>
-                    <select value={provider} onChange={(e) => setProvider(e.target.value)} className="input-base">
-                      <option value="deepl">DeepL</option>
-                      <option value="google">Google Translate</option>
-                      <option value="azure">Azure Translator</option>
-                    </select>
-                    <p className="text-xs text-neutral-400 mt-1">
-                      {providersInfo?.freeAvailable
-                        ? 'Server keys available — free to use.'
-                        : 'Add your own API key in Settings.'}
-                    </p>
-                  </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">Translation Provider</label>
+                  <select value={provider} onChange={(e) => setProvider(e.target.value)} className="input-base">
+                    {serverProviders.length > 0 && (
+                      <optgroup label="Server-side (free)">
+                        {serverProviders.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {byokProviders.length > 0 && (
+                      <optgroup label="My Keys (BYOK)">
+                        {byokProviders.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name} (your key)</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {providersInfo?.providers?.map((p) => (
+                      !serverProviders.includes(p) && !byokProviders.includes(p) ? (
+                        <option key={p.id} value={p.id}>{p.name} (not configured)</option>
+                      ) : null
+                    ))}
+                  </select>
+                  <p className="text-xs text-neutral-400 mt-1">
+                    {providersInfo?.freeAvailable
+                      ? 'Server keys available — free to use. Add your own key in Settings to use BYOK.'
+                      : 'No server keys configured. Add your own key in Settings, or ask an admin to configure one.'}
+                  </p>
+                </div>
+
+                {!useImageMode && (
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-1.5">Output Format</label>
                     <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)} className="input-base">
@@ -321,7 +385,7 @@ export const Upload = () => {
                       <option value="txt">Text</option>
                     </select>
                   </div>
-                </div>
+                )}
 
                 <button
                   onClick={handleUpload}
@@ -336,7 +400,9 @@ export const Upload = () => {
                   ) : isTranslating ? (
                     'Translating...'
                   ) : (
-                    `Upload & Translate (${files.length} file${files.length > 1 ? 's' : ''})`
+                    useImageMode
+                      ? `Translate Image (${files.length} file${files.length > 1 ? 's' : ''})`
+                      : `Upload & Translate (${files.length} file${files.length > 1 ? 's' : ''})`
                   )}
                 </button>
               </div>
