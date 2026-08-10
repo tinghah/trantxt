@@ -14,8 +14,18 @@ declare global {
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Support both Authorization header and query parameter token
+    // Query parameter is needed for browser-native viewing (iframe, new tab)
+    let token: string | null = null;
+
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+    } else if (req.query.token && typeof req.query.token === 'string') {
+      token = req.query.token;
+    }
+
+    if (!token) {
       return res.status(401).json({
         success: false,
         statusCode: 401,
@@ -23,7 +33,6 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
       });
     }
 
-    const token = authHeader.slice(7);
     const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
     req.user = decoded;
     req.ipAddress = req.ip || '';

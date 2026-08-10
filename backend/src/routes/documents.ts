@@ -17,6 +17,7 @@ router.post('/upload', uploadRateLimiter, upload.any(), (req, res) =>
 );
 router.get('/', (req, res) => documentController.getDocuments(req, res));
 router.get('/:id/preview', (req, res) => documentController.previewDocument(req, res));
+router.get('/:id/file', (req, res) => documentController.streamDocument(req, res));
 router.get('/:id', (req, res) => documentController.getDocument(req, res));
 router.delete('/:id', (req, res) => documentController.deleteDocument(req, res));
 

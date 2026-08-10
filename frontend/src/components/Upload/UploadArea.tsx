@@ -61,7 +61,7 @@ export const UploadArea = ({ onFilesSelected, isLoading = false, maxFileSize = 5
         <h3 className="text-lg font-semibold text-neutral-900 mb-2">Drop your files here</h3>
         <p className="text-neutral-600 mb-4">or click to browse</p>
         <p className="text-sm text-neutral-500">
-          Supported: PDF, DOCX, JPG, PNG, GIF, BMP, TIFF (max {maxFileSize}MB each)
+          Supported: PDF, DOCX, DOC, TXT, MD, CSV, EPUB, JPG, PNG, GIF, BMP, TIFF, WebP (max {maxFileSize}MB each)
         </p>
       </label>
     </div>

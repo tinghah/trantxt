@@ -1,6 +1,6 @@
 export const CONSTANTS = {
   // File constraints
-  ALLOWED_FILE_TYPES: ['pdf', 'docx', 'txt', 'md', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff'],
+  ALLOWED_FILE_TYPES: ['pdf', 'docx', 'doc', 'txt', 'md', 'csv', 'json', 'xml', 'html', 'epub', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 'webp', 'svg'],
   MAX_FILE_SIZE_BYTES: 50 * 1024 * 1024, // 50MB
   
   // Rate limiting (requests per minute)

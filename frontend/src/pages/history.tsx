@@ -3,19 +3,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../hooks/useApi';
 import { Translation } from '../types';
 import { formatDate } from '../utils/formatters';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { DocumentPreviewModal } from '../components/Common/DocumentPreviewModal';
 import toast from 'react-hot-toast';
 
 const statusBadge = (status: string) => {
   const map: Record<string, { label: string; cls: string; icon: string }> = {
-    pending: { label: 'Processing', cls: 'bg-yellow-100 text-yellow-800', icon: '⏳' },
-    processing: { label: 'Processing', cls: 'bg-blue-100 text-blue-800', icon: '⏳' },
-    completed: { label: 'Completed', cls: 'bg-green-100 text-green-800', icon: '✅' },
-    error: { label: 'Error', cls: 'bg-red-100 text-red-800', icon: '❌' },
-    failed: { label: 'Error', cls: 'bg-red-100 text-red-800', icon: '❌' },
+    pending: { label: 'Pending', cls: 'bg-yellow-100 text-yellow-800 border border-yellow-200', icon: '⏳' },
+    processing: { label: 'Processing', cls: 'bg-blue-100 text-blue-800 border border-blue-200', icon: '⏳' },
+    completed: { label: 'Completed', cls: 'bg-green-100 text-green-800 border border-green-200', icon: '✅' },
+    error: { label: 'Failed', cls: 'bg-red-100 text-red-800 border border-red-200', icon: '❌' },
+    failed: { label: 'Failed', cls: 'bg-red-100 text-red-800 border border-red-200', icon: '❌' },
   };
-  return map[status] || { label: status, cls: 'bg-neutral-100 text-neutral-700', icon: '•' };
+  return map[status] || { label: status, cls: 'bg-neutral-100 text-neutral-700 border border-neutral-200', icon: '•' };
 };
 
 export const History = () => {
@@ -24,6 +24,7 @@ export const History = () => {
   const [page] = useState(1);
   const [previewDoc, setPreviewDoc] = useState<{ id: string; name: string } | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const loadData = useCallback(() => {
     return get(`/api/user/history?page=${page}&limit=20`).catch(() => {});
@@ -34,17 +35,14 @@ export const History = () => {
     loadData().finally(() => setIsLoading(false));
   }, [loadData]);
 
-  // Auto-refresh every 5s while there are pending translations
   const hasPending = translations?.some((t) => t.status === 'pending' || t.status === 'processing');
   useEffect(() => {
     if (!hasPending) return;
-    const interval = setInterval(() => {
-      loadData();
-    }, 5000);
+    const interval = setInterval(() => { loadData(); }, 5000);
     return () => clearInterval(interval);
   }, [hasPending, loadData]);
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = async (id: string, name: string) => {
     setDownloading(id);
     try {
       const response = await fetch(`/api/translations/${id}/download`);
@@ -58,7 +56,7 @@ export const History = () => {
       const cd = response.headers.get('Content-Disposition') || '';
       const match = cd.match(/filename="(.+?)"/);
       a.href = url;
-      a.download = match ? match[1] : `translation-${id}.txt`;
+      a.download = match ? match[1] : `${name}-translated.txt`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -80,100 +78,105 @@ export const History = () => {
           <p className="text-neutral-600">View all your translations and download results</p>
         </div>
 
-        <div className="card">
-          {isLoading ? (
+        {isLoading ? (
+          <div className="card">
             <div className="flex items-center justify-center py-16">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
             </div>
-          ) : translations && translations.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b border-neutral-200">
-                  <tr>
-                    <th className="text-left py-3 px-4 font-semibold">Document</th>
-                    <th className="text-left py-3 px-4 font-semibold">Languages</th>
-                    <th className="text-left py-3 px-4 font-semibold">Date</th>
-                    <th className="text-left py-3 px-4 font-semibold">Status</th>
-                    <th className="text-left py-3 px-4 font-semibold">Tokens</th>
-                    <th className="text-left py-3 px-4 font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {translations.map((translation) => {
-                    const badge = statusBadge(translation.status);
-                    return (
-                      <tr key={translation.id} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-                        <td className="py-3 px-4">
-                          <p className="font-medium text-neutral-900">{translation.documentName}</p>
-                          <p className="text-xs text-neutral-500">{translation.documentFormat || 'document'}</p>
-                        </td>
-                        <td className="py-3 px-4">
-                          {translation.sourceLanguage} → {translation.targetLanguages.join(', ')}
-                        </td>
-                        <td className="py-3 px-4">{formatDate(translation.createdAt)}</td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${badge.cls}`}>
-                            <span>{badge.icon}</span>
-                            {translation.status === 'pending' || translation.status === 'processing' ? (
-                              <span className="flex items-center gap-1">
-                                {badge.label}
-                                <span className="inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin ml-0.5"></span>
-                              </span>
-                            ) : (
-                              badge.label
-                            )}
-                          </span>
-                          {translation.status === 'error' && translation.errorMessage && (
-                            <p className="text-xs text-red-600 mt-1 max-w-[220px] truncate" title={translation.errorMessage}>
-                              {translation.errorMessage}
-                            </p>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">{translation.tokensUsed}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <Link to={`/translations/${translation.id}`} className="text-blue-700 hover:text-blue-900 font-medium">
-                              View
-                            </Link>
-                            {translation.documentId && (
-                              <button
-                                onClick={() => setPreviewDoc({ id: translation.documentId, name: translation.documentName })}
-                                className="text-blue-700 hover:text-blue-900 font-medium"
-                              >
-                                Preview
-                              </button>
-                            )}
-                            {translation.status === 'completed' && (
-                              <button
-                                onClick={() => handleDownload(translation.id)}
-                                disabled={downloading === translation.id}
-                                className="text-green-700 hover:text-green-900 font-medium disabled:opacity-50"
-                              >
-                                {downloading === translation.id ? 'Downloading...' : 'Download'}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-neutral-500 mb-4">No translations found yet.</p>
-              <Link to="/upload" className="btn-primary">Upload a document</Link>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : translations && translations.length > 0 ? (
+          <div className="space-y-4">
+            {translations.map((translation) => {
+              const badge = statusBadge(translation.status);
+              const isPending = translation.status === 'pending' || translation.status === 'processing';
+              return (
+                <div key={translation.id} className="card-hover">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="min-w-0 flex-1">
+                      <Link to={`/translations/${translation.id}`} className="text-lg font-bold text-neutral-900 hover:text-primary-600 transition-colors block truncate">
+                        {translation.documentName}
+                      </Link>
+                      <p className="text-sm text-neutral-500 mt-1">
+                        {translation.sourceLanguage} → {translation.targetLanguages.join(', ')} · {formatDate(translation.createdAt)}
+                      </p>
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold flex-shrink-0 ${badge.cls}`}>
+                      <span>{badge.icon}</span>
+                      {isPending ? (
+                        <span className="flex items-center gap-1.5">
+                          {badge.label}
+                          <span className="inline-block h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                        </span>
+                      ) : badge.label}
+                    </span>
+                  </div>
+
+                  {translation.status === 'error' && translation.errorMessage && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-red-700">{translation.errorMessage}</p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => navigate(`/translations/${translation.id}`)}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-semibold text-sm hover:bg-primary-700 transition-colors shadow-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      View Details
+                    </button>
+
+                    {translation.documentId && (
+                      <button
+                        onClick={() => setPreviewDoc({ id: translation.documentId, name: translation.documentName })}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-neutral-300 text-neutral-700 rounded-lg font-semibold text-sm hover:bg-neutral-50 hover:border-neutral-400 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        Preview Original
+                      </button>
+                    )}
+
+                    {translation.status === 'completed' && (
+                      <button
+                        onClick={() => handleDownload(translation.id, translation.documentName)}
+                        disabled={downloading === translation.id}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {downloading === translation.id ? (
+                          <>
+                            <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            Download Translated
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {isPending && (
+                      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-yellow-50 border-2 border-yellow-200 text-yellow-700 rounded-lg font-semibold text-sm">
+                        <span className="inline-block h-4 w-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></span>
+                        Processing...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="card text-center py-16">
+            <div className="text-5xl mb-4">📄</div>
+            <p className="text-neutral-500 mb-4 text-lg">No translations found yet.</p>
+            <Link to="/upload" className="btn-primary px-6 py-2.5">Upload your first document</Link>
+          </div>
+        )}
 
         {previewDoc && (
-          <DocumentPreviewModal
-            documentId={previewDoc.id}
-            documentName={previewDoc.name}
-            onClose={() => setPreviewDoc(null)}
-          />
+          <DocumentPreviewModal documentId={previewDoc.id} documentName={previewDoc.name} onClose={() => setPreviewDoc(null)} />
         )}
       </main>
     </div>
