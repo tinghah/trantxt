@@ -1,20 +1,42 @@
 import { Header } from '../components/Common/Header';
 import { UploadArea } from '../components/Upload/UploadArea';
 import { FilePreview } from '../components/Upload/FilePreview';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUpload } from '../hooks/useUpload';
 import { useApi } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Language, ProvidersResponse } from '../types';
 
 export const Upload = () => {
   const [files, setFiles] = useState<File[]>([]);
-  const [targetLanguage, setTargetLanguage] = useState('es');
+  const [targetLanguage, setTargetLanguage] = useState('');
+  const [sourceLanguage, setSourceLanguage] = useState('en');
   const [outputFormat, setOutputFormat] = useState('pdf');
+  const [provider, setProvider] = useState('deepl');
   const { upload, error: uploadError } = useUpload();
-  const { post } = useApi();
+  const { get, post } = useApi();
   const [isUploading, setIsUploading] = useState(false);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [providersInfo, setProvidersInfo] = useState<ProvidersResponse | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    get('/api/config/languages').then((res: any) => {
+      const list = res ?? [];
+      setLanguages(list);
+      if (list.length > 0) {
+        setTargetLanguage((prev) => prev || list[0].code);
+      }
+    });
+    get('/api/config/providers').then((res: any) => {
+      setProvidersInfo(res ?? null);
+      const configured = res?.providers?.find((p: any) => p.serverKeyConfigured);
+      if (configured) {
+        setProvider(configured.id);
+      }
+    });
+  }, [get]);
 
   const handleFilesSelected = (selectedFiles: File[]) => {
     setFiles([...files, ...selectedFiles]);
@@ -49,6 +71,8 @@ export const Upload = () => {
             documentId: docIds[0],
             targetLanguages: [targetLanguage],
             outputFormat,
+            provider,
+            sourceLanguage,
           });
           toast.success('Translation request created');
         } catch (err: any) {
@@ -80,17 +104,42 @@ export const Upload = () => {
 
           {files.length > 0 && (
             <div className="mt-8 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Source Language</label>
+                  <select value={sourceLanguage} onChange={(e) => setSourceLanguage(e.target.value)} className="input-base">
+                    {languages.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.name} ({lang.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Target Language</label>
+                  <select value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)} className="input-base">
+                    {languages.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.name} ({lang.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">Target Language</label>
-                <select value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)} className="input-base">
-                  <option value="es">Spanish</option>
-                  <option value="fr">French</option>
-                  <option value="de">German</option>
-                  <option value="it">Italian</option>
-                  <option value="pt">Portuguese</option>
-                  <option value="ja">Japanese</option>
-                  <option value="zh">Chinese</option>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Translation Provider</label>
+                <select value={provider} onChange={(e) => setProvider(e.target.value)} className="input-base">
+                  <option value="deepl">DeepL</option>
+                  <option value="google">Google Translate</option>
+                  <option value="azure">Azure Translator</option>
                 </select>
+                <p className="text-xs text-neutral-500 mt-1">
+                  {providersInfo?.freeAvailable
+                    ? 'Server keys are available — using them is free. Add your own key in Settings to use it instead.'
+                    : 'No server keys configured. Add your own key in Settings, or ask an admin to configure one.'}
+                </p>
               </div>
 
               <div>

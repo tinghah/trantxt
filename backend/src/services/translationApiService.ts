@@ -4,6 +4,7 @@ import { TranslationApiKey } from '../models/TranslationApiKey';
 import { encryptionService } from './encryptionService';
 import { env } from '../config/env';
 import { CONSTANTS } from '../config/constants';
+import { IsNull } from 'typeorm';
 
 export interface TranslationRequest {
   text: string;
@@ -20,13 +21,64 @@ export class TranslationApiService {
   private apiKeyRepository = AppDataSource.getRepository(TranslationApiKey);
 
   /**
-   * Translate using Google Translate
+   * Resolve API key for a provider:
+   * 1. User's own key (BYOK) if provided
+   * 2. Server-side key from DB
+   * 3. Environment variable fallback
    */
-  async translateWithGoogle(request: TranslationRequest): Promise<TranslationResult> {
-    if (!env.GOOGLE_TRANSLATE_API_KEY) {
-      throw new Error('Google Translate API key not configured');
+  private async resolveApiKey(
+    provider: string,
+    userId?: string
+  ): Promise<{ apiKey: string; apiSecret?: string } | null> {
+    // 1. User's own key
+    if (userId) {
+      const userKey = await this.apiKeyRepository.findOne({
+        where: { provider, userId, isActive: true },
+      });
+      if (userKey) {
+        return {
+          apiKey: encryptionService.decryptData(userKey.apiKeyEncrypted),
+          apiSecret: userKey.apiSecretEncrypted
+            ? encryptionService.decryptData(userKey.apiSecretEncrypted)
+            : undefined,
+        };
+      }
     }
 
+    // 2. Server-side key from DB
+    const serverKey = await this.apiKeyRepository.findOne({
+      where: { provider, userId: IsNull(), isActive: true },
+    });
+    if (serverKey) {
+      return {
+        apiKey: encryptionService.decryptData(serverKey.apiKeyEncrypted),
+        apiSecret: serverKey.apiSecretEncrypted
+          ? encryptionService.decryptData(serverKey.apiSecretEncrypted)
+          : undefined,
+      };
+    }
+
+    // 3. Environment variable fallback
+    if (provider === CONSTANTS.TRANSLATION_PROVIDERS.GOOGLE && env.GOOGLE_TRANSLATE_API_KEY) {
+      return { apiKey: env.GOOGLE_TRANSLATE_API_KEY };
+    }
+    if (provider === CONSTANTS.TRANSLATION_PROVIDERS.DEEPL && env.DEEPL_API_KEY) {
+      return { apiKey: env.DEEPL_API_KEY };
+    }
+    if (provider === CONSTANTS.TRANSLATION_PROVIDERS.AZURE && env.AZURE_TRANSLATOR_KEY) {
+      return {
+        apiKey: env.AZURE_TRANSLATOR_KEY,
+        apiSecret: env.AZURE_TRANSLATOR_ENDPOINT,
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Translate using Google Translate
+   */
+  async translateWithGoogle(request: TranslationRequest, apiKey: string): Promise<TranslationResult> {
     try {
       const response = await axios.post(
         'https://translation.googleapis.com/language/translate/v2',
@@ -36,7 +88,7 @@ export class TranslationApiService {
           target_language: request.targetLanguage,
         },
         {
-          params: { key: env.GOOGLE_TRANSLATE_API_KEY },
+          params: { key: apiKey },
         }
       );
 
@@ -52,11 +104,7 @@ export class TranslationApiService {
   /**
    * Translate using DeepL
    */
-  async translateWithDeepL(request: TranslationRequest): Promise<TranslationResult> {
-    if (!env.DEEPL_API_KEY) {
-      throw new Error('DeepL API key not configured');
-    }
-
+  async translateWithDeepL(request: TranslationRequest, apiKey: string): Promise<TranslationResult> {
     try {
       const response = await axios.post(
         'https://api-free.deepl.com/v1/translate',
@@ -67,7 +115,7 @@ export class TranslationApiService {
         },
         {
           headers: {
-            Authorization: `DeepL-Auth-Key ${env.DEEPL_API_KEY}`,
+            Authorization: `DeepL-Auth-Key ${apiKey}`,
           },
         }
       );
@@ -84,14 +132,14 @@ export class TranslationApiService {
   /**
    * Translate using Azure
    */
-  async translateWithAzure(request: TranslationRequest): Promise<TranslationResult> {
-    if (!env.AZURE_TRANSLATOR_KEY || !env.AZURE_TRANSLATOR_ENDPOINT) {
-      throw new Error('Azure Translator not configured');
-    }
-
+  async translateWithAzure(
+    request: TranslationRequest,
+    apiKey: string,
+    endpoint: string
+  ): Promise<TranslationResult> {
     try {
       const response = await axios.post(
-        `${env.AZURE_TRANSLATOR_ENDPOINT}/translate`,
+        `${endpoint}/translate`,
         [{ text: request.text }],
         {
           params: {
@@ -100,7 +148,7 @@ export class TranslationApiService {
             to: request.targetLanguage,
           },
           headers: {
-            'Ocp-Apim-Subscription-Key': env.AZURE_TRANSLATOR_KEY,
+            'Ocp-Apim-Subscription-Key': apiKey,
             'Content-Type': 'application/json',
           },
         }
@@ -116,32 +164,67 @@ export class TranslationApiService {
   }
 
   /**
-   * Translate with specified provider
+   * Translate with specified provider, using user key (BYOK) or server key
    */
   async translate(
     provider: string,
-    request: TranslationRequest
+    request: TranslationRequest,
+    userId?: string
   ): Promise<TranslationResult> {
+    const resolved = await this.resolveApiKey(provider, userId);
+
+    if (!resolved) {
+      throw new Error(
+        `No API key available for provider "${provider}". Please add your own key in Settings or ask an admin to configure a server key.`
+      );
+    }
+
     switch (provider) {
       case CONSTANTS.TRANSLATION_PROVIDERS.GOOGLE:
-        return this.translateWithGoogle(request);
+        return this.translateWithGoogle(request, resolved.apiKey);
       case CONSTANTS.TRANSLATION_PROVIDERS.DEEPL:
-        return this.translateWithDeepL(request);
+        return this.translateWithDeepL(request, resolved.apiKey);
       case CONSTANTS.TRANSLATION_PROVIDERS.AZURE:
-        return this.translateWithAzure(request);
+        return this.translateWithAzure(
+          request,
+          resolved.apiKey,
+          resolved.apiSecret || env.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com'
+        );
       default:
         throw new Error(`Unknown translation provider: ${provider}`);
     }
   }
 
   /**
-   * Store API key (encrypted)
+   * Check if a provider has any key available (env, server key, or user key)
+   */
+  async isProviderAvailable(provider: string, userId?: string): Promise<boolean> {
+    const resolved = await this.resolveApiKey(provider, userId);
+    return !!resolved;
+  }
+
+  /**
+   * Get available providers (that have a key configured)
+   */
+  async getAvailableProviders(userId?: string): Promise<string[]> {
+    const providers = [];
+    for (const provider of Object.values(CONSTANTS.TRANSLATION_PROVIDERS)) {
+      if (await this.isProviderAvailable(provider, userId)) {
+        providers.push(provider);
+      }
+    }
+    return providers;
+  }
+
+  /**
+   * Store API key (encrypted) - supports server keys (userId null) and user keys
    */
   async storeApiKey(
     provider: string,
     apiKey: string,
     apiSecret: string | undefined,
-    adminId: string
+    adminId: string,
+    userId?: string
   ): Promise<TranslationApiKey> {
     const encryptedKey = encryptionService.encryptData(apiKey);
     const encryptedSecret = apiSecret ? encryptionService.encryptData(apiSecret) : undefined;
@@ -151,48 +234,11 @@ export class TranslationApiService {
       apiKeyEncrypted: encryptedKey,
       apiSecretEncrypted: encryptedSecret,
       createdByAdmin: adminId,
+      userId: userId || undefined,
       isActive: true,
     });
 
     return await this.apiKeyRepository.save(apiKeyRecord);
-  }
-
-  /**
-   * Get active API keys
-   */
-  async getActiveApiKeys(): Promise<TranslationApiKey[]> {
-    return await this.apiKeyRepository.find({
-      where: { isActive: true },
-    });
-  }
-
-  /**
-   * Check provider availability
-   */
-  async isProviderAvailable(provider: string): Promise<boolean> {
-    switch (provider) {
-      case CONSTANTS.TRANSLATION_PROVIDERS.GOOGLE:
-        return !!env.GOOGLE_TRANSLATE_API_KEY;
-      case CONSTANTS.TRANSLATION_PROVIDERS.DEEPL:
-        return !!env.DEEPL_API_KEY;
-      case CONSTANTS.TRANSLATION_PROVIDERS.AZURE:
-        return !!(env.AZURE_TRANSLATOR_KEY && env.AZURE_TRANSLATOR_ENDPOINT);
-      default:
-        return false;
-    }
-  }
-
-  /**
-   * Get available providers
-   */
-  async getAvailableProviders(): Promise<string[]> {
-    const providers = [];
-    for (const provider of Object.values(CONSTANTS.TRANSLATION_PROVIDERS)) {
-      if (await this.isProviderAvailable(provider)) {
-        providers.push(provider);
-      }
-    }
-    return providers;
   }
 }
 

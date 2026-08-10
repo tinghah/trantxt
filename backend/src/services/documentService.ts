@@ -30,6 +30,7 @@ export class DocumentService {
     );
 
     const document = this.documentRepository.create({
+      id: docId,
       userId,
       filename,
       originalFormat,
@@ -170,6 +171,39 @@ export class DocumentService {
       .getRawOne();
 
     return result?.total || 0;
+  }
+
+  /**
+   * Read document file buffer for preview
+   */
+  async readFileBuffer(documentId: string, userId: string): Promise<{ buffer: Buffer; mimeType: string }> {
+    const document = await this.getDocumentById(documentId);
+    if (!document) {
+      throw new Error('Document not found');
+    }
+
+    if (document.userId !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    const filePath = this.getFilePath(document);
+    const buffer = await fs.readFile(filePath);
+
+    const mimeMap: Record<string, string> = {
+      pdf: 'application/pdf',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      bmp: 'image/bmp',
+      tiff: 'image/tiff',
+    };
+
+    return {
+      buffer,
+      mimeType: mimeMap[document.originalFormat] || 'application/octet-stream',
+    };
   }
 }
 

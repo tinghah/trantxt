@@ -11,6 +11,7 @@ import userRoutes from './routes/user';
 import documentRoutes from './routes/documents';
 import translationRoutes from './routes/translations';
 import adminRoutes from './routes/admin';
+import configRoutes from './routes/config';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/translations', translationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/config', configRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -49,6 +49,11 @@ export const capitalizeWords = (text: string): string => {
 export const formatLanguage = (code: string): string => {
   const languages: Record<string, string> = {
     en: 'English',
+    my: 'Burmese',
+    'zh-TW': 'Chinese (Traditional)',
+    'zh-CN': 'Chinese (Simplified)',
+    vi: 'Vietnamese',
+    bn: 'Bengali',
     es: 'Spanish',
     fr: 'French',
     de: 'German',
@@ -60,6 +65,9 @@ export const formatLanguage = (code: string): string => {
     ru: 'Russian',
     ar: 'Arabic',
     hi: 'Hindi',
+    th: 'Thai',
+    id: 'Indonesian',
+    ms: 'Malay',
   };
   return languages[code] || code.toUpperCase();
 };

@@ -13,6 +13,7 @@ import { Upload } from './pages/upload';
 import { History } from './pages/history';
 import { TranslationDetail } from './pages/translations/detail';
 import { Profile } from './pages/profile';
+import { Settings } from './pages/settings';
 import { AdminDashboard } from './pages/admin/dashboard';
 import { AdminUsers } from './pages/admin/users';
 import { AdminGroups } from './pages/admin/groups';
@@ -124,6 +125,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

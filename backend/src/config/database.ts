@@ -7,6 +7,7 @@ import { Translation } from '../models/Translation';
 import { UsageMetrics } from '../models/UsageMetrics';
 import { AuditLog } from '../models/AuditLog';
 import { TranslationApiKey } from '../models/TranslationApiKey';
+import { Language } from '../models/Language';
 import { seedDatabase } from '../database/migrations';
 
 export const AppDataSource = new DataSource({
@@ -14,7 +15,16 @@ export const AppDataSource = new DataSource({
   url: env.DATABASE_URL,
   synchronize: process.env.NODE_ENV === 'development',
   logging: process.env.NODE_ENV === 'development',
-  entities: [User, UserGroup, Document, Translation, UsageMetrics, AuditLog, TranslationApiKey],
+  entities: [
+    User,
+    UserGroup,
+    Document,
+    Translation,
+    UsageMetrics,
+    AuditLog,
+    TranslationApiKey,
+    Language,
+  ],
   migrations: ['src/database/migrations/*.ts'],
   subscribers: [],
 });

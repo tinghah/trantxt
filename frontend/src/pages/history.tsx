@@ -4,11 +4,13 @@ import { useApi } from '../hooks/useApi';
 import { Translation } from '../types';
 import { formatDate, getStatusColor } from '../utils/formatters';
 import { Link } from 'react-router-dom';
+import { DocumentPreviewModal } from '../components/Common/DocumentPreviewModal';
 
 export const History = () => {
   const { data: translations, get } = useApi<Translation[]>();
   const [isLoading, setIsLoading] = useState(true);
   const [page] = useState(1);
+  const [previewDoc, setPreviewDoc] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -51,9 +53,19 @@ export const History = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <Link to={`/translations/${translation.id}`} className="text-primary-600 hover:text-primary-700 font-medium">
-                          View
-                        </Link>
+                        <div className="flex gap-3">
+                          <Link to={`/translations/${translation.id}`} className="text-primary-600 hover:text-primary-700 font-medium">
+                            View
+                          </Link>
+                          {translation.documentId && (
+                            <button
+                              onClick={() => setPreviewDoc({ id: translation.documentId, name: translation.documentName })}
+                              className="text-primary-600 hover:text-primary-700 font-medium"
+                            >
+                              Preview
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -64,6 +76,14 @@ export const History = () => {
             <p className="text-neutral-500">No translations found</p>
           )}
         </div>
+
+        {previewDoc && (
+          <DocumentPreviewModal
+            documentId={previewDoc.id}
+            documentName={previewDoc.name}
+            onClose={() => setPreviewDoc(null)}
+          />
+        )}
       </main>
     </div>
   );

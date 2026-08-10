@@ -18,7 +18,7 @@ export class TranslationController {
         });
       }
 
-      const { documentId, targetLanguages, outputFormat } = req.body;
+      const { documentId, targetLanguages, outputFormat, provider, sourceLanguage } = req.body;
 
       if (!documentId || !targetLanguages || !Array.isArray(targetLanguages)) {
         return res.status(400).json({
@@ -31,16 +31,17 @@ export class TranslationController {
       const translation = await translationService.createTranslation(
         documentId,
         req.user.id,
-        'en',
+        sourceLanguage || 'en',
         targetLanguages,
-        [outputFormat || 'pdf']
+        [outputFormat || 'pdf'],
+        provider
       );
 
       res.status(201).json({
         success: true,
         statusCode: 201,
         message: 'Translation request created',
-        data: { translation },
+        data: translation,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create translation';

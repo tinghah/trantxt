@@ -4,20 +4,22 @@ import { Document } from '../models/Document';
 import { CONSTANTS } from '../config/constants';
 import { translationApiService } from './translationApiService';
 import { quotaService } from './quotaService';
+import { documentService } from './documentService';
 
 export class TranslationService {
   private translationRepository = AppDataSource.getRepository(Translation);
   private documentRepository = AppDataSource.getRepository(Document);
 
   /**
-   * Create translation request
+   * Create translation request and attempt translation
    */
   async createTranslation(
     documentId: string,
     userId: string,
     sourceLanguage: string,
     targetLanguages: string[],
-    outputFormats: string[] = ['pdf']
+    outputFormats: string[] = ['pdf'],
+    provider?: string
   ): Promise<Translation> {
     const document = await this.documentRepository.findOne({
       where: { id: documentId },
@@ -44,7 +46,58 @@ export class TranslationService {
       approvalStatus: CONSTANTS.APPROVAL_STATUS.PENDING,
     });
 
-    return await this.translationRepository.save(translation);
+    const saved = await this.translationRepository.save(translation);
+
+    // Attempt translation using provider (or auto-select)
+    try {
+      const resolvedProvider =
+        provider ||
+        (await translationApiService.getAvailableProviders(userId))[0] ||
+        'deepl';
+
+      // Extract text content from document
+      let text = '';
+      try {
+        const { buffer } = await documentService.readFileBuffer(documentId, userId);
+        const extracted = document.metadata?.extractedText;
+        if (extracted) {
+          text = typeof extracted === 'string' ? extracted : JSON.stringify(extracted);
+        } else {
+          text = buffer.toString('utf8').replace(/\u0000/g, '').slice(0, 50000);
+        }
+      } catch {
+        text = document.metadata?.textContent || '';
+      }
+
+      if (text && text.trim().length > 0) {
+        const result = await translationApiService.translate(
+          resolvedProvider,
+          {
+            text: text.slice(0, 50000),
+            sourceLanguage,
+            targetLanguage: targetLanguages[0],
+          },
+          userId
+        );
+
+        saved.translatedContent = {
+          [targetLanguages[0]]: result.translatedText,
+          _provider: resolvedProvider,
+          _translatedAt: new Date().toISOString(),
+        };
+        saved.tokensUsed = result.tokensUsed;
+        saved.approvalStatus = CONSTANTS.APPROVAL_STATUS.APPROVED;
+
+        await quotaService.updateUsage(userId, document.pageCount, result.tokensUsed, 0, resolvedProvider);
+      }
+    } catch (error) {
+      saved.translatedContent = {
+        _error: error instanceof Error ? error.message : 'Translation failed',
+      };
+      saved.approvalStatus = CONSTANTS.APPROVAL_STATUS.PENDING;
+    }
+
+    return await this.translationRepository.save(saved);
   }
 
   /**
@@ -82,18 +135,23 @@ export class TranslationService {
   async translateContent(
     translationId: string,
     content: string,
-    provider: string
+    provider: string,
+    userId?: string
   ): Promise<{ translatedContent: string; tokensUsed: number }> {
     const translation = await this.getTranslationById(translationId);
     if (!translation) {
       throw new Error('Translation not found');
     }
 
-    const result = await translationApiService.translate(provider, {
-      text: content,
-      sourceLanguage: translation.sourceLanguage,
-      targetLanguage: translation.targetLanguage,
-    });
+    const result = await translationApiService.translate(
+      provider,
+      {
+        text: content,
+        sourceLanguage: translation.sourceLanguage,
+        targetLanguage: translation.targetLanguage,
+      },
+      userId
+    );
 
     translation.translatedContent = {
       text: result.translatedText,

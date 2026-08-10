@@ -181,6 +181,45 @@ export interface AuditLog {
   status: 'success' | 'failure';
 }
 
+// Configuration Types
+export interface Language {
+  code: string;
+  name: string;
+  nativeName: string;
+  isEnabled: boolean;
+  sortOrder: number;
+}
+
+export interface TranslationProvider {
+  id: string;
+  name: string;
+  configured: boolean;
+  serverKeyConfigured: boolean;
+}
+
+export interface ProvidersResponse {
+  providers: TranslationProvider[];
+  freeAvailable: boolean;
+  serverConfigured: boolean;
+}
+
+export interface ApiKeyRecord {
+  id: string;
+  provider: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  keyMasked: string;
+}
+
+export interface DocumentPreview {
+  document: Document;
+  mimeType: string;
+  isImage: boolean;
+  dataUrl?: string;
+  contentPreview?: string;
+}
+
 // Error Types
 export interface ValidationError {
   field: string;

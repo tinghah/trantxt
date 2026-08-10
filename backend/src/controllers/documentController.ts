@@ -195,6 +195,61 @@ export class DocumentController {
       });
     }
   }
+
+  /**
+   * Preview document (return file data for browser rendering)
+   */
+  async previewDocument(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          statusCode: 401,
+          message: 'Unauthorized',
+        });
+      }
+
+      const { id } = req.params;
+
+      const { buffer, mimeType } = await documentService.readFileBuffer(id, req.user.id);
+
+      const isImage = mimeType.startsWith('image/');
+      const dataUrl = isImage ? `data:${mimeType};base64,${buffer.toString('base64')}` : null;
+
+      const document = await documentService.getDocumentById(id);
+
+      res.status(200).json({
+        success: true,
+        statusCode: 200,
+        message: 'Document preview ready',
+        data: {
+          document: {
+            id: document?.id,
+            filename: document?.filename,
+            originalFormat: document?.originalFormat,
+            fileSizeBytes: document?.fileSizeBytes,
+            pageCount: document?.pageCount,
+            status: document?.status,
+            uploadDate: document?.uploadDate,
+            metadata: document?.metadata,
+          },
+          mimeType,
+          isImage,
+          dataUrl: isImage ? dataUrl : null,
+          contentPreview: isImage
+            ? null
+            : buffer.toString('utf8').slice(0, 5000),
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to preview document';
+      res.status(500).json({
+        success: false,
+        statusCode: 500,
+        message,
+      });
+    }
+  }
 }
 
 export const documentController = new DocumentController();
