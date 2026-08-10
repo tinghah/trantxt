@@ -93,6 +93,27 @@ body {
   @apply card transition-all hover:shadow-md hover:border-neutral-300 cursor-pointer;
 }
 
+/* Action button styles */
+.action-btn {
+  @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-sm;
+}
+
+.action-btn-primary {
+  @apply action-btn bg-primary-600 text-white hover:bg-primary-700 active:scale-[0.98];
+}
+
+.action-btn-outline {
+  @apply action-btn bg-white border-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 active:scale-[0.98];
+}
+
+.action-btn-success {
+  @apply action-btn bg-green-600 text-white hover:bg-green-700 active:scale-[0.98];
+}
+
+.action-btn-danger {
+  @apply action-btn bg-red-600 text-white hover:bg-red-700 active:scale-[0.98];
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   @apply w-2 h-2;

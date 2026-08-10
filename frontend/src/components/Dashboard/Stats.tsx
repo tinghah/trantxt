@@ -12,23 +12,55 @@ export const Stats = () => {
   }, [get]);
 
   if (isLoading) {
-    return <div className="animate-pulse">Loading...</div>;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="card animate-pulse">
+            <div className="h-4 bg-neutral-200 rounded w-24 mb-3"></div>
+            <div className="h-8 bg-neutral-200 rounded w-16"></div>
+          </div>
+        ))}
+      </div>
+    );
   }
+
+  const stats = [
+    {
+      label: 'Pages Translated',
+      value: metrics?.pagesTranslated || 0,
+      icon: '📄',
+      color: 'text-primary-600',
+      bg: 'bg-primary-50',
+    },
+    {
+      label: 'Files Uploaded',
+      value: metrics?.filesUploaded || 0,
+      icon: '📁',
+      color: 'text-secondary-600',
+      bg: 'bg-secondary-50',
+    },
+    {
+      label: 'Tokens Used',
+      value: metrics?.tokensUsed || 0,
+      icon: '🔤',
+      color: 'text-info',
+      bg: 'bg-blue-50',
+    },
+  ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div className="card">
-        <p className="text-neutral-600 text-sm mb-1">Pages Translated</p>
-        <p className="text-3xl font-bold text-primary-600">{metrics?.pagesTranslated || 0}</p>
-      </div>
-      <div className="card">
-        <p className="text-neutral-600 text-sm mb-1">Files Uploaded</p>
-        <p className="text-3xl font-bold text-secondary-600">{metrics?.filesUploaded || 0}</p>
-      </div>
-      <div className="card">
-        <p className="text-neutral-600 text-sm mb-1">Tokens Used</p>
-        <p className="text-3xl font-bold text-info">{metrics?.tokensUsed || 0}</p>
-      </div>
+      {stats.map((stat, i) => (
+        <div key={i} className="card flex items-center gap-4">
+          <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+            <span className="text-2xl">{stat.icon}</span>
+          </div>
+          <div>
+            <p className="text-sm text-neutral-500">{stat.label}</p>
+            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value.toLocaleString()}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

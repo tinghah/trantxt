@@ -46,11 +46,9 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./backend/src:/app/backend/src
       - backend_uploads:/app/uploads
     networks:
       - trantxt-network
-    command: npm run dev
 
   # Frontend
   frontend:
