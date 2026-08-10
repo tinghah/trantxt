@@ -5,7 +5,7 @@ import { Translation } from '../types';
 import { formatDate } from '../utils/formatters';
 import { Link, useNavigate } from 'react-router-dom';
 import { DocumentPreviewModal } from '../components/Common/DocumentPreviewModal';
-import toast from 'react-hot-toast';
+import { downloadTranslation } from '../utils/download';
 
 const statusBadge = (status: string) => {
   const map: Record<string, { label: string; cls: string; icon: string }> = {
@@ -44,29 +44,8 @@ export const History = () => {
 
   const handleDownload = async (id: string, name: string) => {
     setDownloading(id);
-    try {
-      const response = await fetch(`/api/translations/${id}/download`);
-      if (!response.ok) {
-        const err = await response.json().catch(() => null);
-        throw new Error(err?.message || 'Download failed');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const cd = response.headers.get('Content-Disposition') || '';
-      const match = cd.match(/filename="(.+?)"/);
-      a.href = url;
-      a.download = match ? match[1] : `${name}-translated.txt`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success('Download started');
-    } catch (error: any) {
-      toast.error(error.message || 'Download failed');
-    } finally {
-      setDownloading(null);
-    }
+    await downloadTranslation(id, name, 'txt');
+    setDownloading(null);
   };
 
   return (

@@ -117,7 +117,7 @@ export class TranslationApiService {
         'https://translation.googleapis.com/language/translate/v2',
         {
           q: request.text,
-          source: request.sourceLanguage,
+          source: request.sourceLanguage === 'auto' || request.sourceLanguage === 'xx' ? undefined : request.sourceLanguage,
           target: request.targetLanguage,
         },
         authConfig
@@ -153,13 +153,18 @@ export class TranslationApiService {
    */
   async translateWithDeepL(request: TranslationRequest, apiKey: string): Promise<TranslationResult> {
     try {
+      const isAuto = request.sourceLanguage === 'auto' || request.sourceLanguage === 'xx';
+      const body: any = {
+        text: [request.text],
+        target_lang: request.targetLanguage.toUpperCase(),
+      };
+      if (!isAuto) {
+        body.source_lang = request.sourceLanguage.toUpperCase();
+      }
+
       const response = await axios.post(
         'https://api-free.deepl.com/v1/translate',
-        {
-          text: [request.text],
-          source_lang: request.sourceLanguage.toUpperCase(),
-          target_lang: request.targetLanguage.toUpperCase(),
-        },
+        body,
         {
           headers: {
             Authorization: `DeepL-Auth-Key ${apiKey}`,
@@ -185,15 +190,20 @@ export class TranslationApiService {
     endpoint: string
   ): Promise<TranslationResult> {
     try {
+      const isAuto = request.sourceLanguage === 'auto' || request.sourceLanguage === 'xx';
+      const params: any = {
+        'api-version': '3.0',
+        to: request.targetLanguage,
+      };
+      if (!isAuto) {
+        params.from = request.sourceLanguage;
+      }
+
       const response = await axios.post(
         `${endpoint}/translate`,
         [{ text: request.text }],
         {
-          params: {
-            'api-version': '3.0',
-            from: request.sourceLanguage,
-            to: request.targetLanguage,
-          },
+          params,
           headers: {
             'Ocp-Apim-Subscription-Key': apiKey,
             'Content-Type': 'application/json',

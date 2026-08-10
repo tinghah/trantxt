@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { translationService } from '../services/translationService';
 import { translationApiService } from '../services/translationApiService';
+import { imageTranslationService } from '../services/imageTranslationService';
 import { quotaService } from '../services/quotaService';
 import { CONSTANTS } from '../config/constants';
 
@@ -146,6 +147,7 @@ export class TranslationController {
   async downloadTranslation(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const format = (req.query.format as string) || 'txt';
 
       const translation = await translationService.getTranslationById(id);
       if (!translation) {
@@ -186,12 +188,111 @@ export class TranslationController {
 
       await translationService.incrementDownloadCount(id);
 
-      const filename = `translation-${translation.sourceLanguage}-to-${targetLang}.txt`;
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      const doc = translation.document;
+      const baseName = (doc?.filename || 'translation').replace(/\.[^.]+$/, '');
+      const { generateFile } = await import('../services/fileExportService');
+      const { buffer, mimeType, filename } = await generateFile(text, format, `${baseName}-${targetLang}`);
+
+      res.setHeader('Content-Type', mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.send(text);
+      res.send(buffer);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to download translation';
+      res.status(500).json({
+        success: false,
+        statusCode: 500,
+        message,
+      });
+    }
+  }
+
+  /**
+   * Translate text inside an image (OCR + translate + re-render)
+   */
+  async translateImage(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          statusCode: 401,
+          message: 'Unauthorized',
+        });
+      }
+
+      const { documentId, targetLanguage, provider, sourceLanguage } = req.body;
+
+      if (!documentId || !targetLanguage) {
+        return res.status(400).json({
+          success: false,
+          statusCode: 400,
+          message: 'documentId and targetLanguage are required',
+        });
+      }
+
+      const result = await imageTranslationService.translateImage(
+        documentId,
+        req.user.id,
+        targetLanguage,
+        provider
+      );
+
+      res.status(201).json({
+        success: true,
+        statusCode: 201,
+        message: 'Image translated',
+        data: { translationId: result.translationId },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Image translation failed';
+      res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message,
+      });
+    }
+  }
+
+  /**
+   * Download the translated image file (if this was an image translation)
+   */
+  async downloadTranslatedImage(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const translation = await translationService.getTranslationById(id);
+      if (!translation) {
+        return res.status(404).json({
+          success: false,
+          statusCode: 404,
+          message: 'Translation not found',
+        });
+      }
+
+      if (req.user && translation.userId !== req.user.id && !req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          statusCode: 403,
+          message: 'Unauthorized',
+        });
+      }
+
+      const image = await imageTranslationService.getTranslatedImage(id, req.user!.id);
+      if (!image) {
+        return res.status(404).json({
+          success: false,
+          statusCode: 404,
+          message: 'No translated image available',
+        });
+      }
+
+      const doc = translation.document;
+      const baseName = (doc?.filename || 'translated-image').replace(/\.[^.]+$/, '');
+
+      res.setHeader('Content-Type', image.mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${baseName}-translated.png"`);
+      res.send(image.buffer);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to download translated image';
       res.status(500).json({
         success: false,
         statusCode: 500,

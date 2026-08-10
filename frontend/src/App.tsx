@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { useAuthStore } from './store/authStore';
 import { Toast } from './components/Common/Toast';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useEffect } from 'react';
@@ -46,14 +47,28 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, token } = useAuth();
+  const { setUser } = useAuthStore();
 
   useEffect(() => {
-    // Try to load user from token on app load
-    if (isAuthenticated && !user) {
-      // Could fetch user profile here if needed
+    // Refresh user profile from API on app load if authenticated
+    if (isAuthenticated && token) {
+      (async () => {
+        try {
+          const response = await fetch('/api/user/profile', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const json = await response.json();
+            const profile = json.data?.user || json.data;
+            if (profile) setUser(profile);
+          }
+        } catch {
+          // Keep stored user if profile fetch fails (offline, etc.)
+        }
+      })();
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, token, setUser]);
 
   return (
     <ThemeProvider>

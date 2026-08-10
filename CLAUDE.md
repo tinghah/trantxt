@@ -124,7 +124,12 @@ docker compose ps
 - `GET /api/documents/:id/file` — Streams raw file with proper Content-Type headers
   - `?download=true` forces attachment download
   - Supports `?token=JWT` for browser-native viewing (iframe/new tab)
-- `GET /api/translations/:id/download` — Downloads translated text as .txt
+- `GET /api/translations/:id/download` — Downloads translated content
+  - `?format=txt|pdf|docx` (uses pdfkit/docx libs)
+  - Requires `Authorization: Bearer` header (NOT raw fetch without token)
+- `POST /api/translations/image` — OCR + translate + re-render image text
+- `GET /api/translations/:id/image` — Download translated image (PNG)
+- `POST /api/translations` — Text translation with `?sourceLanguage=auto` for detect
 
 ### Frontend Components
 
@@ -139,6 +144,9 @@ docker compose ps
 4. **TypeScript errors in dev mode**: Use compiled `dist/` in production containers, not `ts-node`
 5. **PDF preview stuck**: Was caused by reading raw PDF bytes as UTF-8. Fixed with proper file streaming endpoint (`/api/documents/:id/file`)
 6. **Auth for browser viewing**: iframe/new tab can't send Authorization headers. Use `?token=JWT` query parameter for file endpoints
+7. **Download auth**: `fetch` calls for downloads MUST include `Authorization: Bearer` header. Use `frontend/src/utils/download.ts` helper
+8. **Auth persistence**: User object is persisted in localStorage (`trantxt_user`) — `useAuth` rehydrates it so refresh keeps you logged in
+9. **Image translation**: Uses tesseract.js OCR + sharp re-render. Heavy first-run (downloads OCR models)
 
 ## Testing API Endpoints
 
