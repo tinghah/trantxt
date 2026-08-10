@@ -4,7 +4,7 @@ import { useApi } from '../../hooks/useApi';
 import { UserGroup } from '../../types';
 
 export const AdminGroups = () => {
-  const { data: groups, get, post, put } = useApi<UserGroup[]>();
+  const { data: groups, get, post } = useApi<UserGroup[]>();
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({

@@ -17,4 +17,6 @@ export const env = {
   MAX_FILE_SIZE_MB: parseInt(process.env.MAX_FILE_SIZE_MB || '50', 10),
   JWT_EXPIRE: process.env.JWT_EXPIRE || '1h',
   JWT_REFRESH_EXPIRE: process.env.JWT_REFRESH_EXPIRE || '7d',
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@example.com',
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'AdminPassword123!',
 };

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { validateEmail, validatePassword } from '../../utils/validators';
+import { validateEmail } from '../../utils/validators';
 import toast from 'react-hot-toast';
 
 export const Login = () => {

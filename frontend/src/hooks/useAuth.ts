@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { authService } from '../services/auth';
-import { User, LoginRequest, SignupRequest } from '../types';
+import { LoginRequest, SignupRequest } from '../types';
 
 export const useAuth = () => {
   const { user, token, setUser, setToken, logout: storeLogout } = useAuthStore();

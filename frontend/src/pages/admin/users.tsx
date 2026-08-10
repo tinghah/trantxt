@@ -7,7 +7,7 @@ import { formatDate } from '../../utils/formatters';
 export const AdminUsers = () => {
   const { data: users, get, put } = useApi<AdminUser[]>();
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
 
   useEffect(() => {
     setIsLoading(true);

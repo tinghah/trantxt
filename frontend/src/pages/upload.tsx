@@ -9,7 +9,8 @@ export const Upload = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [outputFormat, setOutputFormat] = useState('pdf');
-  const { upload, uploads, isLoading: isUploading } = useUpload();
+  const { upload, error: uploadError } = useUpload();
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFilesSelected = async (selectedFiles: File[]) => {
     setFiles([...files, ...selectedFiles]);
@@ -26,11 +27,14 @@ export const Upload = () => {
     }
 
     try {
+      setIsUploading(true);
       const results = await upload(files);
       toast.success(`${results.length} file(s) uploaded successfully`);
       setFiles([]);
     } catch (error) {
-      toast.error('Upload failed');
+      toast.error(uploadError || 'Upload failed');
+    } finally {
+      setIsUploading(false);
     }
   };
 

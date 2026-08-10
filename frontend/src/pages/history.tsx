@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 export const History = () => {
   const { data: translations, get } = useApi<Translation[]>();
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
 
   useEffect(() => {
     setIsLoading(true);

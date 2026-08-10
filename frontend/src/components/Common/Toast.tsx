@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import toast, { Toaster, ToastBar } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 export const Toast = () => {
   return <Toaster position="top-right" />;

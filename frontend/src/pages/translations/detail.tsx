@@ -1,15 +1,15 @@
-import { Header } from '../components/Common/Header';
+import { Header } from '../../components/Common/Header';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useApi } from '../hooks/useApi';
-import { TranslationDetail } from '../types';
-import { formatDate, getStatusColor } from '../utils/formatters';
+import { useApi } from '../../hooks/useApi';
+import { TranslationDetail as TranslationDetailType } from '../../types';
+import { formatDate, getStatusColor } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 
 export const TranslationDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: translation, get } = useApi<TranslationDetail>();
+  const { data: translation, get } = useApi<TranslationDetailType>();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

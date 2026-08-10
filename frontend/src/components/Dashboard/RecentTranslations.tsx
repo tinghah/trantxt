@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Document } from '../../types';
-import { formatDate, formatFileSize } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters';
 
 export const RecentTranslations = () => {
   const { data: documents, get } = useApi<Document[]>();
