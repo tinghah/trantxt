@@ -77,11 +77,18 @@ export class TranslationController {
         });
       }
 
+      // Sanitize user object to avoid leaking sensitive fields
+      const safeTranslation: any = { ...translation };
+      if (safeTranslation.user) {
+        const { passwordHash, apiKey, apiKeyHash, ...safeUser } = safeTranslation.user as any;
+        safeTranslation.user = safeUser;
+      }
+
       res.status(200).json({
         success: true,
         statusCode: 200,
         message: 'Translation retrieved',
-        data: { translation },
+        data: { translation: safeTranslation },
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get translation';

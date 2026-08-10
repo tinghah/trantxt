@@ -101,10 +101,10 @@ export class QuotaService {
   ): Promise<void> {
     const metrics = await this.getOrCreateMetrics(userId);
 
-    metrics.pagesTranslated += pages;
-    metrics.tokensUsed += tokens;
-    metrics.filesUploaded += 1;
-    metrics.totalSizeBytes += fileSize;
+    metrics.pagesTranslated = Number(metrics.pagesTranslated) + pages;
+    metrics.tokensUsed = Number(metrics.tokensUsed) + tokens;
+    metrics.filesUploaded = Number(metrics.filesUploaded) + 1;
+    metrics.totalSizeBytes = Number(metrics.totalSizeBytes) + Number(fileSize);
 
     if (provider) {
       metrics.apiCallsByProvider[provider] = (metrics.apiCallsByProvider[provider] || 0) + 1;

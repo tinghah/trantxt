@@ -249,11 +249,19 @@ export class AdminController {
 
       const { translations, total } = await translationService.getPendingTranslations(page, limit);
 
+      const safeTranslations = translations.map((t: any) => {
+        if (t.user) {
+          const { passwordHash, apiKey, apiKeyHash, ...safeUser } = t.user;
+          t.user = safeUser;
+        }
+        return t;
+      });
+
       res.status(200).json({
         success: true,
         statusCode: 200,
         message: 'Pending translations retrieved',
-        data: translations,
+        data: safeTranslations,
         pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       });
     } catch (error) {
@@ -408,11 +416,19 @@ export class AdminController {
 
       const { translations, total } = await translationService.searchTranslations({}, page, limit);
 
+      const safeTranslations = translations.map((t: any) => {
+        if (t.user) {
+          const { passwordHash, apiKey, apiKeyHash, ...safeUser } = t.user;
+          t.user = safeUser;
+        }
+        return t;
+      });
+
       res.status(200).json({
         success: true,
         statusCode: 200,
         message: 'Translations retrieved',
-        data: translations,
+        data: safeTranslations,
         pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       });
     } catch (error) {

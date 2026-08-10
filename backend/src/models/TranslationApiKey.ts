@@ -34,6 +34,9 @@ export class TranslationApiKey {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isDefault: boolean;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

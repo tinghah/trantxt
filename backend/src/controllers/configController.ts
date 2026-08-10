@@ -118,6 +118,7 @@ export class ConfigController {
         provider: k.provider,
         name: k.name || '',
         isActive: k.isActive,
+        isDefault: k.isDefault,
         createdAt: k.createdAt,
         keyMasked: this.maskKey(k.apiKeyEncrypted),
         metadata: k.metadata || {},
@@ -151,7 +152,7 @@ export class ConfigController {
         });
       }
 
-      const { provider, apiKey, apiSecret, name, projectId, clientId, clientSecret } = req.body;
+      const { provider, apiKey, apiSecret, name, projectId, clientId, clientSecret, isDefault } = req.body;
 
       if (!provider) {
         return res.status(400).json({
@@ -181,6 +182,7 @@ export class ConfigController {
           userId: undefined,
           createdByAdmin: req.user.id,
           isActive: true,
+          isDefault: !!isDefault,
           metadata: { projectId: projectId || '' },
         });
 
@@ -220,6 +222,7 @@ export class ConfigController {
         userId: undefined,
         createdByAdmin: req.user.id,
         isActive: true,
+        isDefault: !!isDefault,
         metadata: projectId ? { projectId } : {},
       });
 
@@ -260,6 +263,15 @@ export class ConfigController {
           success: false,
           statusCode: 404,
           message: 'API key not found',
+        });
+      }
+
+      // Default keys cannot be deleted
+      if (key.isDefault) {
+        return res.status(400).json({
+          success: false,
+          statusCode: 400,
+          message: 'This is the default server key and cannot be deleted. You can deactivate it instead.',
         });
       }
 

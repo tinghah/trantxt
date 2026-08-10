@@ -46,10 +46,15 @@ export class TranslationApiService {
       }
     }
 
-    // 2. Server-side key from DB
-    const serverKey = await this.apiKeyRepository.findOne({
-      where: { provider, userId: IsNull(), isActive: true },
+    // 2. Server-side key from DB (prefer default key first)
+    let serverKey = await this.apiKeyRepository.findOne({
+      where: { provider, userId: IsNull(), isActive: true, isDefault: true },
     });
+    if (!serverKey) {
+      serverKey = await this.apiKeyRepository.findOne({
+        where: { provider, userId: IsNull(), isActive: true },
+      });
+    }
     if (serverKey) {
       return {
         apiKey: encryptionService.decryptData(serverKey.apiKeyEncrypted),
@@ -112,8 +117,8 @@ export class TranslationApiService {
         'https://translation.googleapis.com/language/translate/v2',
         {
           q: request.text,
-          source_language: request.sourceLanguage,
-          target_language: request.targetLanguage,
+          source: request.sourceLanguage,
+          target: request.targetLanguage,
         },
         authConfig
       );
