@@ -29,7 +29,7 @@ export const Login = () => {
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Login failed');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Login failed');
     }
   };
 
