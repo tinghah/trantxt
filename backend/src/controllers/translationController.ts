@@ -77,18 +77,11 @@ export class TranslationController {
         });
       }
 
-      // Sanitize user object to avoid leaking sensitive fields
-      const safeTranslation: any = { ...translation };
-      if (safeTranslation.user) {
-        const { passwordHash, apiKey, apiKeyHash, ...safeUser } = safeTranslation.user as any;
-        safeTranslation.user = safeUser;
-      }
-
       res.status(200).json({
         success: true,
         statusCode: 200,
         message: 'Translation retrieved',
-        data: { translation: safeTranslation },
+        data: { translation: translationService.serializeTranslation(translation) },
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get translation';
@@ -129,7 +122,7 @@ export class TranslationController {
         success: true,
         statusCode: 200,
         message: 'Translations retrieved',
-        data: translations,
+        data: translations.map((t) => translationService.serializeTranslation(t)),
         pagination: {
           page,
           limit,
@@ -171,14 +164,32 @@ export class TranslationController {
         });
       }
 
+      const translatedContent = translation.translatedContent || {};
+      if ((translatedContent as any)._error) {
+        return res.status(400).json({
+          success: false,
+          statusCode: 400,
+          message: 'Translation failed or is not ready. Error: ' + (translatedContent as any)._error,
+        });
+      }
+
+      const targetLang = translation.targetLanguage || (translation.targetLanguages || [])[0] || 'translated';
+      const text = (translatedContent as any)[targetLang] || '';
+
+      if (!text) {
+        return res.status(400).json({
+          success: false,
+          statusCode: 400,
+          message: 'No translated content available to download',
+        });
+      }
+
       await translationService.incrementDownloadCount(id);
 
-      res.status(200).json({
-        success: true,
-        statusCode: 200,
-        message: 'Translation prepared for download',
-        data: { translation },
-      });
+      const filename = `translation-${translation.sourceLanguage}-to-${targetLang}.txt`;
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(text);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to download translation';
       res.status(500).json({

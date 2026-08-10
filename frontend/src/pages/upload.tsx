@@ -67,6 +67,7 @@ export const Upload = () => {
       const docIds = results.map((r: any) => r.id || r.documentId).filter(Boolean);
       if (docIds.length > 0) {
         try {
+          toast.loading('Translating your document...', { id: 'translating' });
           await post('/api/translations', {
             documentId: docIds[0],
             targetLanguages: [targetLanguage],
@@ -74,9 +75,9 @@ export const Upload = () => {
             provider,
             sourceLanguage,
           });
-          toast.success('Translation request created');
+          toast.success('Translation completed', { id: 'translating' });
         } catch (err: any) {
-          toast.error(err.response?.data?.message || 'Could not create translation request');
+          toast.error(err.response?.data?.message || 'Could not create translation request', { id: 'translating' });
         }
       }
 

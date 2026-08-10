@@ -88,21 +88,22 @@ export interface Translation {
   id: string;
   documentId: string;
   documentName: string;
+  documentFormat?: string;
   sourceLanguage: string;
   targetLanguages: string[];
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'error' | 'failed';
   createdAt: string;
   completedAt?: string;
   tokensUsed: number;
   downloadCount: number;
   approvalStatus?: 'pending' | 'approved' | 'rejected';
+  errorMessage?: string;
 }
 
 export interface TranslationDetail extends Translation {
-  originalContent: string;
+  originalContent: Record<string, string>;
   translatedContent?: Record<string, string>;
   outputFormats: string[];
-  errorMessage?: string;
 }
 
 // Usage Types

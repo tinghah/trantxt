@@ -249,13 +249,7 @@ export class AdminController {
 
       const { translations, total } = await translationService.getPendingTranslations(page, limit);
 
-      const safeTranslations = translations.map((t: any) => {
-        if (t.user) {
-          const { passwordHash, apiKey, apiKeyHash, ...safeUser } = t.user;
-          t.user = safeUser;
-        }
-        return t;
-      });
+      const safeTranslations = translations.map((t) => translationService.serializeTranslation(t));
 
       res.status(200).json({
         success: true,
@@ -416,13 +410,7 @@ export class AdminController {
 
       const { translations, total } = await translationService.searchTranslations({}, page, limit);
 
-      const safeTranslations = translations.map((t: any) => {
-        if (t.user) {
-          const { passwordHash, apiKey, apiKeyHash, ...safeUser } = t.user;
-          t.user = safeUser;
-        }
-        return t;
-      });
+      const safeTranslations = translations.map((t) => translationService.serializeTranslation(t));
 
       res.status(200).json({
         success: true,

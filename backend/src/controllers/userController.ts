@@ -192,7 +192,7 @@ export class UserController {
         success: true,
         statusCode: 200,
         message: 'Translation history retrieved',
-        data: translations,
+        data: translations.map((t) => translationService.serializeTranslation(t)),
         pagination: {
           page,
           limit,

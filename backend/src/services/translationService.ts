@@ -48,6 +48,9 @@ export class TranslationService {
 
     const saved = await this.translationRepository.save(translation);
 
+    // Extract text content from document (hoisted so both try/catch can use it)
+    let text = '';
+
     // Attempt translation using provider (or auto-select)
     try {
       const resolvedProvider =
@@ -56,7 +59,6 @@ export class TranslationService {
         'deepl';
 
       // Extract text content from document
-      let text = '';
       try {
         const { buffer } = await documentService.readFileBuffer(documentId, userId);
         const extracted = document.metadata?.extractedText;
@@ -80,6 +82,9 @@ export class TranslationService {
           userId
         );
 
+        saved.originalContent = {
+          [sourceLanguage]: text.slice(0, 50000),
+        };
         saved.translatedContent = {
           [targetLanguages[0]]: result.translatedText,
           _provider: resolvedProvider,
@@ -91,18 +96,73 @@ export class TranslationService {
         await quotaService.updateUsage(userId, document.pageCount, result.tokensUsed, 0, resolvedProvider);
       } else {
         // No text found - still mark as approved
+        saved.originalContent = {
+          [sourceLanguage]: '',
+        };
         saved.translatedContent = {
           _error: 'No text content found in document',
         };
       }
     } catch (error) {
       // Even on error, mark as approved but store error message
+      saved.originalContent = {
+        [sourceLanguage]: text || '',
+      };
       saved.translatedContent = {
         _error: error instanceof Error ? error.message : 'Translation failed',
       };
     }
 
     return await this.translationRepository.save(saved);
+  }
+
+  /**
+   * Serialize a translation entity for API responses.
+   * Maps stored content into a frontend-friendly status:
+   * - completed: has a real translation for each target language
+   * - error: has _error
+   * - pending: no content yet
+   */
+  serializeTranslation(translation: Translation): any {
+    const translatedContent = translation.translatedContent || {};
+    const targetLangs = translation.targetLanguages || [translation.targetLanguage || ''];
+
+    const hasError = !!(translatedContent as any)._error;
+    const completedLangs = targetLangs.filter((lang) => typeof translatedContent[lang] === 'string' && translatedContent[lang].length > 0);
+
+    let status: 'pending' | 'processing' | 'completed' | 'error';
+    if (hasError) {
+      status = 'error';
+    } else if (completedLangs.length >= targetLangs.length && targetLangs.length > 0) {
+      status = 'completed';
+    } else {
+      status = 'pending';
+    }
+
+    const document = (translation as any).document as any;
+    const user = (translation as any).user as any;
+
+    return {
+      id: translation.id,
+      documentId: translation.documentId,
+      documentName: document?.filename || 'Document',
+      documentFormat: document?.originalFormat || '',
+      sourceLanguage: translation.sourceLanguage,
+      targetLanguage: translation.targetLanguage,
+      targetLanguages: translation.targetLanguages,
+      status,
+      approvalStatus: translation.approvalStatus,
+      createdAt: translation.createdAt,
+      tokensUsed: translation.tokensUsed,
+      downloadCount: translation.downloadCount,
+      outputFormats: translation.outputFormats,
+      originalContent: translation.originalContent || {},
+      translatedContent: translatedContent,
+      errorMessage: (translatedContent as any)._error || null,
+      user: user
+        ? { id: user.id, name: user.name, email: user.email }
+        : undefined,
+    };
   }
 
   /**
