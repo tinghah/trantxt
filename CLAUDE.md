@@ -107,12 +107,38 @@ docker compose ps
 - `frontend/src/types/index.ts` — All TypeScript interfaces
 - `backend/src/` — Express server, routes, models, services
 
+## Document Preview System
+
+### Supported File Types
+
+| Type | Formats | Preview Method |
+|------|---------|----------------|
+| PDF | pdf | Browser-native iframe viewer |
+| Images | jpg, jpeg, png, gif, bmp, tiff, webp, svg | Inline `<img>` tag |
+| Text | txt, md, csv, json, xml, html, js, ts, css | Monospace `<pre>` block |
+| Documents | docx, doc, epub | "Open in Browser" / Download buttons |
+
+### Backend Endpoints
+
+- `GET /api/documents/:id/preview` — Returns metadata (mimeType, isImage, isText, isPdf, fileUrl, contentPreview)
+- `GET /api/documents/:id/file` — Streams raw file with proper Content-Type headers
+  - `?download=true` forces attachment download
+  - Supports `?token=JWT` for browser-native viewing (iframe/new tab)
+- `GET /api/translations/:id/download` — Downloads translated text as .txt
+
+### Frontend Components
+
+- `DocumentPreviewModal` — Modal with iframe (PDF), img (images), pre (text), or fallback buttons
+- Auth supports query parameter `?token=` for browser-native file viewing
+
 ## Known Gotchas
 
 1. **Upload EACCES error**: Fixed by setting `/app/uploads` ownership to `nodejs:nodejs` in Dockerfile
 2. **Route Not Found (405)**: Nginx must proxy `/api/` to backend — check `nginx.conf`
 3. **sharp build fails in Docker**: Needs `python3 make g++ vips-dev` in Alpine
 4. **TypeScript errors in dev mode**: Use compiled `dist/` in production containers, not `ts-node`
+5. **PDF preview stuck**: Was caused by reading raw PDF bytes as UTF-8. Fixed with proper file streaming endpoint (`/api/documents/:id/file`)
+6. **Auth for browser viewing**: iframe/new tab can't send Authorization headers. Use `?token=JWT` query parameter for file endpoints
 
 ## Testing API Endpoints
 

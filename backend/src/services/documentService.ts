@@ -174,6 +174,59 @@ export class DocumentService {
   }
 
   /**
+   * Get MIME type for a document format
+   */
+  getMimeType(format: string): string {
+    const mimeMap: Record<string, string> = {
+      pdf: 'application/pdf',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      doc: 'application/msword',
+      txt: 'text/plain; charset=utf-8',
+      md: 'text/plain; charset=utf-8',
+      csv: 'text/csv; charset=utf-8',
+      json: 'application/json; charset=utf-8',
+      xml: 'application/xml; charset=utf-8',
+      html: 'text/html; charset=utf-8',
+      htm: 'text/html; charset=utf-8',
+      epub: 'application/epub+zip',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      bmp: 'image/bmp',
+      tiff: 'image/tiff',
+      tif: 'image/tiff',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+    };
+    return mimeMap[format] || 'application/octet-stream';
+  }
+
+  /**
+   * Check if a format is a text-based file
+   */
+  isTextFormat(format: string): boolean {
+    const textFormats = ['txt', 'md', 'csv', 'json', 'xml', 'html', 'htm', 'js', 'ts', 'css', 'py', 'java', 'c', 'cpp', 'h'];
+    return textFormats.includes(format);
+  }
+
+  /**
+   * Check if a format is an image
+   */
+  isImageFormat(format: string): boolean {
+    const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 'webp', 'svg'];
+    return imageFormats.includes(format);
+  }
+
+  /**
+   * Check if a format is a document that can be rendered in browser
+   */
+  isBrowserRenderable(format: string): boolean {
+    const renderable = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 'webp', 'svg'];
+    return renderable.includes(format);
+  }
+
+  /**
    * Read document file buffer for preview
    */
   async readFileBuffer(documentId: string, userId: string): Promise<{ buffer: Buffer; mimeType: string }> {
@@ -189,20 +242,9 @@ export class DocumentService {
     const filePath = this.getFilePath(document);
     const buffer = await fs.readFile(filePath);
 
-    const mimeMap: Record<string, string> = {
-      pdf: 'application/pdf',
-      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      gif: 'image/gif',
-      bmp: 'image/bmp',
-      tiff: 'image/tiff',
-    };
-
     return {
       buffer,
-      mimeType: mimeMap[document.originalFormat] || 'application/octet-stream',
+      mimeType: this.getMimeType(document.originalFormat),
     };
   }
 }

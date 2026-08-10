@@ -181,7 +181,7 @@ export const Upload = () => {
                 multiple
                 disabled={isUploading}
                 className="hidden"
-                accept=".pdf,.docx,.jpg,.jpeg,.png,.gif,.bmp,.tiff"
+                accept=".pdf,.docx,.doc,.txt,.md,.csv,.json,.xml,.html,.epub,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.tif,.webp,.svg"
               />
               <div className="text-5xl mb-4">{isDragging ? '📥' : '📄'}</div>
               <h3 className="text-xl font-semibold text-neutral-900 mb-2">

@@ -197,7 +197,7 @@ export class DocumentController {
   }
 
   /**
-   * Preview document (return file data for browser rendering)
+   * Preview document (return metadata for frontend rendering)
    */
   async previewDocument(req: Request, res: Response) {
     try {
@@ -210,13 +210,43 @@ export class DocumentController {
       }
 
       const { id } = req.params;
-
-      const { buffer, mimeType } = await documentService.readFileBuffer(id, req.user.id);
-
-      const isImage = mimeType.startsWith('image/');
-      const dataUrl = isImage ? `data:${mimeType};base64,${buffer.toString('base64')}` : null;
-
       const document = await documentService.getDocumentById(id);
+
+      if (!document || document.userId !== req.user.id) {
+        return res.status(404).json({
+          success: false,
+          statusCode: 404,
+          message: 'Document not found',
+        });
+      }
+
+      const format = document.originalFormat;
+      const mimeType = documentService.getMimeType(format);
+      const isImage = documentService.isImageFormat(format);
+      const isText = documentService.isTextFormat(format);
+      const isBrowserRenderable = documentService.isBrowserRenderable(format);
+      const isPdf = format === 'pdf';
+
+      let contentPreview: string | null = null;
+      let dataUrl: string | null = null;
+
+      if (isText) {
+        try {
+          const { buffer } = await documentService.readFileBuffer(id, req.user.id);
+          contentPreview = buffer.toString('utf8').slice(0, 10000);
+        } catch {
+          contentPreview = null;
+        }
+      }
+
+      if (isImage) {
+        try {
+          const { buffer } = await documentService.readFileBuffer(id, req.user.id);
+          dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+        } catch {
+          dataUrl = null;
+        }
+      }
 
       res.status(200).json({
         success: true,
@@ -224,25 +254,64 @@ export class DocumentController {
         message: 'Document preview ready',
         data: {
           document: {
-            id: document?.id,
-            filename: document?.filename,
-            originalFormat: document?.originalFormat,
-            fileSizeBytes: document?.fileSizeBytes,
-            pageCount: document?.pageCount,
-            status: document?.status,
-            uploadDate: document?.uploadDate,
-            metadata: document?.metadata,
+            id: document.id,
+            filename: document.filename,
+            originalFormat: document.originalFormat,
+            fileSizeBytes: document.fileSizeBytes,
+            pageCount: document.pageCount,
+            status: document.status,
+            uploadDate: document.uploadDate,
+            metadata: document.metadata,
           },
           mimeType,
           isImage,
-          dataUrl: isImage ? dataUrl : null,
-          contentPreview: isImage
-            ? null
-            : buffer.toString('utf8').slice(0, 5000),
+          isText,
+          isPdf,
+          isBrowserRenderable,
+          dataUrl,
+          contentPreview,
+          fileUrl: `/api/documents/${id}/file`,
         },
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to preview document';
+      res.status(500).json({
+        success: false,
+        statusCode: 500,
+        message,
+      });
+    }
+  }
+
+  /**
+   * Stream document file for download or browser viewing
+   */
+  async streamDocument(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          statusCode: 401,
+          message: 'Unauthorized',
+        });
+      }
+
+      const { id } = req.params;
+      const { buffer, mimeType } = await documentService.readFileBuffer(id, req.user.id);
+      const document = await documentService.getDocumentById(id);
+
+      const disposition = req.query.download === 'true' ? 'attachment' : 'inline';
+      const filename = document?.filename || `document.${document?.originalFormat || 'bin'}`;
+
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
+      res.setHeader('Cache-Control', 'private, max-age=3600');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      res.send(buffer);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to stream document';
       res.status(500).json({
         success: false,
         statusCode: 500,
