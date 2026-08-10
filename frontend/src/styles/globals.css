@@ -16,32 +16,18 @@ body {
 
 /* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideIn {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .animate-fadeIn {
@@ -127,143 +113,118 @@ body {
   @apply bg-neutral-300 rounded-full hover:bg-neutral-400;
 }
 
-/* ===================== DARK MODE - TERMINAL THEME ===================== */
-.dark {
-  --color-bg: #0a0a0a;
-  --color-surface: #0d0d0d;
-  --color-surface-hover: #111111;
-  --color-border: #1a3a1a;
-  --color-text: #00ff41;
-  --color-text-secondary: #00cc33;
-  --color-text-muted: #336633;
-  --color-accent: #00ff41;
-  --color-accent-gold: #ffd700;
-  --color-danger: #ff4444;
-}
-
+/* ===================== DARK MODE ===================== */
 .dark body {
-  @apply bg-[#0a0a0a] text-[#00ff41];
+  @apply bg-[#1a1a2e] text-[#e0e0e0];
 }
 
 .dark .card,
 .dark .card-hover {
-  @apply bg-[#0d0d0d] border-[#1a3a1a] text-[#00ff41];
+  @apply bg-[#16213e] border-[#2a2a4a] text-[#e0e0e0];
 }
 
 .dark .card-hover:hover {
-  @apply bg-[#111111] border-[#2a5a2a];
+  @apply bg-[#1a2744] border-[#3a3a5a];
 }
 
 .dark .input-base {
-  @apply bg-[#0d0d0d] border-[#1a3a1a] text-[#00ff41];
+  @apply bg-[#16213e] border-[#2a2a4a] text-[#e0e0e0];
 }
 
 .dark .input-base:focus {
-  @apply ring-[#00ff41] border-[#00ff41];
+  @apply ring-[#4a9eff] border-[#4a9eff];
 }
 
 .dark .btn-primary {
-  @apply bg-[#1a3a1a] text-[#00ff41] hover:bg-[#2a5a2a];
+  @apply bg-[#2563eb] text-white hover:bg-[#1d4ed8];
 }
 
 .dark .btn-outline {
-  @apply border-[#1a3a1a] text-[#00ff41] hover:bg-[#0d1f0d];
+  @apply border-[#4a9eff] text-[#4a9eff] hover:bg-[#1a2744];
 }
 
 .dark .btn-ghost {
-  @apply text-[#00ff41] hover:bg-[#1a3a1a];
+  @apply text-[#e0e0e0] hover:bg-[#2a2a4a];
 }
 
 .dark .btn-secondary {
-  @apply bg-[#2a2a0a] text-[#ffd700] hover:bg-[#3a3a0a];
+  @apply bg-[#7c3aed] text-white hover:bg-[#6d28d9];
 }
 
 .dark select,
 .dark select.input-base {
-  @apply bg-[#0d0d0d] border-[#1a3a1a] text-[#00ff41];
+  @apply bg-[#16213e] border-[#2a2a4a] text-[#e0e0e0];
 }
 
 .dark table {
-  @apply text-[#00ff41];
+  @apply text-[#e0e0e0];
 }
 
 .dark thead {
-  @apply bg-[#0d0d0d] border-[#1a3a1a];
+  @apply bg-[#16213e] border-[#2a2a4a];
 }
 
 .dark tbody tr {
-  @apply border-[#1a3a1a];
+  @apply border-[#2a2a4a];
 }
 
 .dark tbody tr:hover {
-  @apply bg-[#0d1f0d];
+  @apply bg-[#1a2744];
 }
 
 .dark .bg-neutral-50 {
-  @apply bg-[#0d0d0d];
+  @apply bg-[#1a1a2e];
 }
 
 .dark .bg-neutral-100 {
-  @apply bg-[#111111];
+  @apply bg-[#16213e];
 }
 
 .dark .bg-white {
-  @apply bg-[#0d0d0d];
+  @apply bg-[#16213e];
 }
 
 .dark .text-neutral-900 {
-  @apply text-[#00ff41];
+  @apply text-[#e0e0e0];
 }
 
 .dark .text-neutral-800 {
-  @apply text-[#00cc33];
+  @apply text-[#d0d0d0];
 }
 
 .dark .text-neutral-700 {
-  @apply text-[#00cc33];
+  @apply text-[#b0b0b0];
 }
 
 .dark .text-neutral-600 {
-  @apply text-[#336633];
+  @apply text-[#909090];
 }
 
 .dark .text-neutral-500 {
-  @apply text-[#336633];
+  @apply text-[#707070];
 }
 
 .dark .border-neutral-200 {
-  @apply border-[#1a3a1a];
+  @apply border-[#2a2a4a];
 }
 
 .dark .border-neutral-300 {
-  @apply border-[#2a5a2a];
+  @apply border-[#3a3a5a];
 }
 
 .dark pre {
-  @apply bg-[#0a0a0a] text-[#00ff41] border-[#1a3a1a];
+  @apply bg-[#0f0f23] text-[#e0e0e0] border-[#2a2a4a];
 }
 
 .dark code {
-  @apply bg-[#1a3a1a] text-[#00ff41];
+  @apply bg-[#2a2a4a] text-[#4a9eff];
 }
 
-/* Terminal-style glow effect for dark mode */
+/* Dark mode subtle glow */
 .dark .card {
-  box-shadow: 0 0 10px rgba(0, 255, 65, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .dark .card:hover {
-  box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
-}
-
-/* Terminal cursor blink animation for dark mode */
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.dark .cursor-blink::after {
-  content: '_';
-  animation: blink 1s infinite;
-  color: #00ff41;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
