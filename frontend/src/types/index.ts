@@ -210,6 +210,7 @@ export interface ApiKeyRecord {
   isActive: boolean;
   createdAt: string;
   keyMasked: string;
+  metadata?: Record<string, any>;
 }
 
 export interface DocumentPreview {

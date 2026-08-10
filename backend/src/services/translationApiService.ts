@@ -29,7 +29,7 @@ export class TranslationApiService {
   private async resolveApiKey(
     provider: string,
     userId?: string
-  ): Promise<{ apiKey: string; apiSecret?: string } | null> {
+  ): Promise<{ apiKey: string; apiSecret?: string; projectId?: string } | null> {
     // 1. User's own key
     if (userId) {
       const userKey = await this.apiKeyRepository.findOne({
@@ -41,6 +41,7 @@ export class TranslationApiService {
           apiSecret: userKey.apiSecretEncrypted
             ? encryptionService.decryptData(userKey.apiSecretEncrypted)
             : undefined,
+          projectId: userKey.metadata?.projectId,
         };
       }
     }
@@ -55,6 +56,7 @@ export class TranslationApiService {
         apiSecret: serverKey.apiSecretEncrypted
           ? encryptionService.decryptData(serverKey.apiSecretEncrypted)
           : undefined,
+        projectId: serverKey.metadata?.projectId,
       };
     }
 
@@ -77,8 +79,34 @@ export class TranslationApiService {
 
   /**
    * Translate using Google Translate
+   * Supports both API key auth and OAuth access token auth
    */
-  async translateWithGoogle(request: TranslationRequest, apiKey: string): Promise<TranslationResult> {
+  async translateWithGoogle(
+    request: TranslationRequest,
+    apiKey: string,
+    apiSecret?: string,
+    projectId?: string
+  ): Promise<TranslationResult> {
+    let authConfig: Record<string, any> = { params: { key: apiKey } };
+
+    // If the "apiKey" is actually an OAuth client ID (contains .apps.googleusercontent.com),
+    // exchange client credentials for an access token
+    if (apiKey.includes('apps.googleusercontent.com') && apiSecret) {
+      try {
+        const tokenResponse = await axios.post(
+          'https://oauth2.googleapis.com/token',
+          `grant_type=client_credentials&client_id=${encodeURIComponent(apiKey)}&client_secret=${encodeURIComponent(apiSecret)}`,
+          { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        );
+        const accessToken = tokenResponse.data.access_token;
+        authConfig = { headers: { Authorization: `Bearer ${accessToken}` } };
+      } catch (error) {
+        throw new Error(
+          `Google OAuth token exchange failed: ${this.getErrorMessage(error)}. OAuth client credentials cannot be used directly — create an API key in Google Cloud Console (APIs & Services → Credentials → Create API Key) or add a service account key.`
+        );
+      }
+    }
+
     try {
       const response = await axios.post(
         'https://translation.googleapis.com/language/translate/v2',
@@ -87,9 +115,7 @@ export class TranslationApiService {
           source_language: request.sourceLanguage,
           target_language: request.targetLanguage,
         },
-        {
-          params: { key: apiKey },
-        }
+        authConfig
       );
 
       return {
@@ -97,8 +123,24 @@ export class TranslationApiService {
         tokensUsed: Math.ceil(request.text.length / 100),
       };
     } catch (error) {
-      throw new Error(`Google Translate error: ${error}`);
+      throw new Error(`Google Translate error: ${this.getErrorMessage(error)}`);
     }
+  }
+
+  /**
+   * Extract a readable message from an axios error
+   */
+  private getErrorMessage(error: any): string {
+    if (error?.response?.data?.error?.message) {
+      return error.response.data.error.message;
+    }
+    if (error?.response?.data?.error_description) {
+      return error.response.data.error_description;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
   }
 
   /**
@@ -181,7 +223,7 @@ export class TranslationApiService {
 
     switch (provider) {
       case CONSTANTS.TRANSLATION_PROVIDERS.GOOGLE:
-        return this.translateWithGoogle(request, resolved.apiKey);
+        return this.translateWithGoogle(request, resolved.apiKey, resolved.apiSecret, resolved.projectId);
       case CONSTANTS.TRANSLATION_PROVIDERS.DEEPL:
         return this.translateWithDeepL(request, resolved.apiKey);
       case CONSTANTS.TRANSLATION_PROVIDERS.AZURE:

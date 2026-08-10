@@ -42,4 +42,7 @@ export class TranslationApiKey {
 
   @Column({ type: 'uuid', nullable: true })
   createdByAdmin?: string;
+
+  @Column({ type: 'jsonb', default: {} })
+  metadata: Record<string, any>;
 }

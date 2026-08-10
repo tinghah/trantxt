@@ -15,9 +15,8 @@ import { TranslationDetail } from './pages/translations/detail';
 import { Profile } from './pages/profile';
 import { Settings } from './pages/settings';
 import { AdminDashboard } from './pages/admin/dashboard';
-import { AdminUsers } from './pages/admin/users';
-import { AdminGroups } from './pages/admin/groups';
 import { AdminTranslations } from './pages/admin/translations';
+import { UsersGroupsManagement } from './pages/admin/users-groups';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, isAdmin = false }: { children: React.ReactNode; isAdmin?: boolean }) => {
@@ -150,7 +149,7 @@ function App() {
             path="/admin/users"
             element={
               <ProtectedRoute isAdmin>
-                <AdminUsers />
+                <UsersGroupsManagement />
               </ProtectedRoute>
             }
           />
@@ -158,7 +157,15 @@ function App() {
             path="/admin/groups"
             element={
               <ProtectedRoute isAdmin>
-                <AdminGroups />
+                <UsersGroupsManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users-groups"
+            element={
+              <ProtectedRoute isAdmin>
+                <UsersGroupsManagement />
               </ProtectedRoute>
             }
           />

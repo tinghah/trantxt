@@ -47,4 +47,9 @@ router.delete('/admin/translation-apis/:id', authMiddleware, adminMiddleware, (r
   configController.deleteServerApiKey(req, res)
 );
 
+// Admin-only: test Google connection
+router.get('/admin/translation-apis/google/test', authMiddleware, adminMiddleware, (req, res) =>
+  configController.testGoogleConnection(req, res)
+);
+
 export default router;
