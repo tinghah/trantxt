@@ -48,13 +48,14 @@ const DEFAULT_LANGUAGES = [
  * - Creates a default user group
  * - Creates the admin user (isAdmin = true, isApproved = true)
  * - Seeds languages
+ * - Creates "Users" group for regular users
  */
 export const seedDatabase = async () => {
   const userRepository = AppDataSource.getRepository(User);
   const groupRepository = AppDataSource.getRepository(UserGroup);
   const languageRepository = AppDataSource.getRepository(Language);
 
-  // 1. Create default group if it doesn't exist
+  // 1. Create Administrators group if it doesn't exist
   let adminGroup = await groupRepository.findOne({ where: { name: 'Administrators' } });
   if (!adminGroup) {
     adminGroup = groupRepository.create({
@@ -70,7 +71,23 @@ export const seedDatabase = async () => {
     console.log('✅ Created default "Administrators" group');
   }
 
-  // 2. Create admin user if it doesn't exist
+  // 2. Create Users group if it doesn't exist
+  let usersGroup = await groupRepository.findOne({ where: { name: 'Users' } });
+  if (!usersGroup) {
+    usersGroup = groupRepository.create({
+      name: 'Users',
+      description: 'Default group for regular users',
+      monthlyPageLimit: 1000,
+      fileSizeLimitMb: 25,
+      concurrentUploads: 5,
+      tokenQuota: 100000,
+      translationApisAllowed: ['google', 'deepl', 'azure'],
+    });
+    usersGroup = await groupRepository.save(usersGroup);
+    console.log('✅ Created default "Users" group');
+  }
+
+  // 3. Create admin user if it doesn't exist
   const existingAdmin = await userRepository.findOne({ where: { email: env.ADMIN_EMAIL } });
   if (!existingAdmin) {
     const passwordHash = await bcrypt.hash(env.ADMIN_PASSWORD, 12);
@@ -88,7 +105,7 @@ export const seedDatabase = async () => {
     console.log('ℹ️  Admin user already exists, skipping creation');
   }
 
-  // 3. Seed languages
+  // 4. Seed languages
   for (const lang of DEFAULT_LANGUAGES) {
     const existing = await languageRepository.findOne({ where: { code: lang.code } });
     if (!existing) {

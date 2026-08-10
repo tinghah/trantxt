@@ -43,7 +43,7 @@ export class TranslationService {
       targetLanguage: targetLanguages[0],
       targetLanguages,
       outputFormats,
-      approvalStatus: CONSTANTS.APPROVAL_STATUS.PENDING,
+      approvalStatus: CONSTANTS.APPROVAL_STATUS.APPROVED, // Auto-approve - no approval needed
     });
 
     const saved = await this.translationRepository.save(translation);
@@ -86,15 +86,20 @@ export class TranslationService {
           _translatedAt: new Date().toISOString(),
         };
         saved.tokensUsed = result.tokensUsed;
-        saved.approvalStatus = CONSTANTS.APPROVAL_STATUS.APPROVED;
+        // Already approved, no status change needed
 
         await quotaService.updateUsage(userId, document.pageCount, result.tokensUsed, 0, resolvedProvider);
+      } else {
+        // No text found - still mark as approved
+        saved.translatedContent = {
+          _error: 'No text content found in document',
+        };
       }
     } catch (error) {
+      // Even on error, mark as approved but store error message
       saved.translatedContent = {
         _error: error instanceof Error ? error.message : 'Translation failed',
       };
-      saved.approvalStatus = CONSTANTS.APPROVAL_STATUS.PENDING;
     }
 
     return await this.translationRepository.save(saved);
