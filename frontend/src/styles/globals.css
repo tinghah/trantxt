@@ -11,7 +11,8 @@ html {
 }
 
 body {
-  @apply bg-white text-neutral-900 font-sans antialiased;
+  @apply bg-white text-neutral-900 antialiased;
+  font-family: var(--font-display, 'Noto Sans', sans-serif);
 }
 
 /* Animations */

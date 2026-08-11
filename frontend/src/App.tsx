@@ -3,6 +3,7 @@ import { useAuth } from './hooks/useAuth';
 import { useAuthStore } from './store/authStore';
 import { Toast } from './components/Common/Toast';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { useEffect } from 'react';
 
 // Pages
@@ -72,8 +73,9 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Toast />
-      <Router>
+      <LanguageProvider>
+        <Toast />
+        <Router>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Index />} />
@@ -198,6 +200,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }
