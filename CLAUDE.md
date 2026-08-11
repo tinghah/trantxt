@@ -151,6 +151,8 @@ docker compose ps
 12. **Non-Docker setup**: Works with Node.js 18+ and PostgreSQL 14+. See README
 13. **PDF/DOCX text extraction**: Uses `pdfjs-dist` for PDF and `adm-zip` for DOCX/EPUB extraction. Raw UTF-8 reading gives garbled output for binary formats
 14. **Docker sharp build**: Use `--ignore-scripts` in builder stage, then `npm rebuild sharp` in production stage (avoids libvips download issues)
+15. **Frontend fonts**: Google Fonts CDN loads Noto Sans, Noto Sans Myanmar, Noto Sans TC. Language switcher in Header changes display font
+16. **PDF export fonts**: Docker installs font-noto, font-noto-cjk, font-noto-myanmar. PDFKit auto-detects CJK and uses appropriate font
 
 ## Testing API Endpoints
 
