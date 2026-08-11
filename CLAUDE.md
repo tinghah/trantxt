@@ -146,7 +146,13 @@ docker compose ps
 6. **Auth for browser viewing**: iframe/new tab can't send Authorization headers. Use `?token=JWT` query parameter for file endpoints
 7. **Download auth**: `fetch` calls for downloads MUST include `Authorization: Bearer` header. Use `frontend/src/utils/download.ts` helper
 8. **Auth persistence**: User object is persisted in localStorage (`trantxt_user`) — `useAuth` rehydrates it so refresh keeps you logged in
-9. **Image translation**: Uses tesseract.js OCR + sharp re-render. Heavy first-run (downloads OCR models)
+10. **useApi data shape**: `useApi` extracts `response.data.data` from axios responses. For endpoints returning `{ data: { translation: {...} } }`, access via `data?.translation`, not directly
+11. **Download formats**: Backend respects stored `outputFormats` when no `?format=` param. Frontend has format dropdown per translation
+12. **Non-Docker setup**: Works with Node.js 18+ and PostgreSQL 14+. See README
+13. **PDF/DOCX text extraction**: Uses `pdfjs-dist` for PDF and `adm-zip` for DOCX/EPUB extraction. Raw UTF-8 reading gives garbled output for binary formats
+14. **Docker sharp build**: Use `--ignore-scripts` in builder stage, then `npm rebuild sharp` in production stage (avoids libvips download issues)
+15. **Frontend fonts**: Google Fonts CDN loads Noto Sans, Noto Sans Myanmar, Noto Sans TC. Language switcher in Header changes display font
+16. **PDF export fonts**: Docker installs font-noto, font-noto-cjk, font-noto-myanmar. PDFKit auto-detects CJK and uses appropriate font
 
 ## Testing API Endpoints
 

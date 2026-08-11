@@ -2,19 +2,26 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useLanguage, LANGUAGE_OPTIONS } from '../../contexts/LanguageContext';
 
 export const Header = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { displayLanguage, setDisplayLanguage } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -79,6 +86,35 @@ export const Header = () => {
                 </svg>
               )}
             </button>
+
+            {/* Language Switcher */}
+            <div className="relative" ref={langRef}>
+              <button
+                onClick={() => setLangMenuOpen(!langMenuOpen)}
+                className="px-2.5 py-1.5 rounded-lg text-sm font-medium text-neutral-600 dark:text-[#b0b0b0] hover:bg-neutral-100 dark:hover:bg-[#2a2a4a] transition-colors border border-neutral-200 dark:border-[#2a2a4a]"
+                title="Switch display language"
+              >
+                {LANGUAGE_OPTIONS.find((o) => o.code === displayLanguage)?.nativeName || 'EN'}
+              </button>
+              {langMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#16213e] rounded-lg shadow-lg border border-neutral-200 dark:border-[#2a2a4a] py-1 z-50">
+                  {LANGUAGE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.code}
+                      onClick={() => { setDisplayLanguage(opt.code); setLangMenuOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                        displayLanguage === opt.code
+                          ? 'bg-blue-50 dark:bg-[#1a2744] text-blue-700 dark:text-[#4a9eff] font-semibold'
+                          : 'text-neutral-700 dark:text-[#b0b0b0] hover:bg-neutral-100 dark:hover:bg-[#2a2a4a]'
+                      }`}
+                    >
+                      <span>{opt.nativeName}</span>
+                      <span className="text-xs text-neutral-400 ml-2">({opt.name})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>

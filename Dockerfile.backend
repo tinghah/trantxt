@@ -5,8 +5,8 @@ WORKDIR /app/backend
 # Copy package files
 COPY backend/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (skip postinstall scripts to avoid sharp/canvas build issues in builder)
+RUN npm ci --ignore-scripts
 
 # Copy source code
 COPY backend/src ./src
@@ -20,14 +20,15 @@ FROM node:18-alpine
 
 WORKDIR /app/backend
 
-# Install dumb-init and build dependencies for sharp
-RUN apk add --no-cache dumb-init python3 make g++ vips-dev
+# Install dumb-init, build deps, and Unicode fonts for PDF export
+RUN apk add --no-cache dumb-init python3 make g++ vips-dev font-noto font-noto-cjk font-noto-myanmar
 
 # Copy package files
 COPY backend/package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+# Skip postinstall scripts to avoid sharp download issues, then rebuild sharp with system vips
+RUN npm ci --only=production --ignore-scripts && npm rebuild sharp
 
 # Copy built files from builder
 COPY --from=builder /app/backend/dist ./dist
