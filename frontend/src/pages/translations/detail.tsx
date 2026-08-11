@@ -22,7 +22,8 @@ const statusBadge = (status: string) => {
 export const TranslationDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: translation, get } = useApi<TranslationDetailType>();
+  const { data, get } = useApi<any>();
+  const translation = data?.translation as TranslationDetailType | undefined;
   const [isLoading, setIsLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<'txt' | 'pdf' | 'docx'>('txt');

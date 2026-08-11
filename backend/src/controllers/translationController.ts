@@ -147,7 +147,6 @@ export class TranslationController {
   async downloadTranslation(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const format = (req.query.format as string) || 'txt';
 
       const translation = await translationService.getTranslationById(id);
       if (!translation) {
@@ -174,6 +173,11 @@ export class TranslationController {
           message: 'Translation failed or is not ready. Error: ' + (translatedContent as any)._error,
         });
       }
+
+      // Resolve format: use query param, or fall back to first stored output format, or txt
+      const requestedFormat = (req.query.format as string) || '';
+      const storedFormats = (translation as any).outputFormats || [];
+      const format = requestedFormat || storedFormats[0] || 'txt';
 
       const targetLang = translation.targetLanguage || (translation.targetLanguages || [])[0] || 'translated';
       const text = (translatedContent as any)[targetLang] || '';

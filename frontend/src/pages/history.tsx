@@ -24,6 +24,7 @@ export const History = () => {
   const [page] = useState(1);
   const [previewDoc, setPreviewDoc] = useState<{ id: string; name: string } | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadFormats, setDownloadFormats] = useState<Record<string, string>>({});
   const navigate = useNavigate();
 
   const loadData = useCallback(() => {
@@ -43,8 +44,9 @@ export const History = () => {
   }, [hasPending, loadData]);
 
   const handleDownload = async (id: string, name: string) => {
+    const format = (downloadFormats[id] as any) || 'txt';
     setDownloading(id);
-    await downloadTranslation(id, name, 'txt');
+    await downloadTranslation(id, name, format);
     setDownloading(null);
   };
 
@@ -116,23 +118,34 @@ export const History = () => {
                     )}
 
                     {translation.status === 'completed' && (
-                      <button
-                        onClick={() => handleDownload(translation.id, translation.documentName)}
-                        disabled={downloading === translation.id}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {downloading === translation.id ? (
-                          <>
-                            <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                            Downloading...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                            Download Translated
-                          </>
-                        )}
-                      </button>
+                      <>
+                        <select
+                          value={downloadFormats[translation.id] || 'txt'}
+                          onChange={(e) => setDownloadFormats((prev) => ({ ...prev, [translation.id]: e.target.value }))}
+                          className="px-2 py-2 border border-neutral-300 rounded-lg text-xs font-medium bg-white"
+                        >
+                          <option value="txt">TXT</option>
+                          <option value="pdf">PDF</option>
+                          <option value="docx">DOCX</option>
+                        </select>
+                        <button
+                          onClick={() => handleDownload(translation.id, translation.documentName)}
+                          disabled={downloading === translation.id}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {downloading === translation.id ? (
+                            <>
+                              <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                              Download
+                            </>
+                          )}
+                        </button>
+                      </>
                     )}
 
                     {isPending && (
