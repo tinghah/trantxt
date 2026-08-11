@@ -5,6 +5,7 @@ import { CONSTANTS } from '../config/constants';
 import { translationApiService } from './translationApiService';
 import { quotaService } from './quotaService';
 import { documentService } from './documentService';
+import { extractTextFromFile } from './textExtractionService';
 
 export class TranslationService {
   private translationRepository = AppDataSource.getRepository(Translation);
@@ -58,14 +59,15 @@ export class TranslationService {
         (await translationApiService.getAvailableProviders(userId))[0] ||
         'deepl';
 
-      // Extract text content from document
+      // Extract text content from document using proper extraction
       try {
         const { buffer } = await documentService.readFileBuffer(documentId, userId);
         const extracted = document.metadata?.extractedText;
         if (extracted) {
           text = typeof extracted === 'string' ? extracted : JSON.stringify(extracted);
         } else {
-          text = buffer.toString('utf8').replace(/\u0000/g, '').slice(0, 50000);
+          const filePath = documentService.getFilePath(document);
+          text = await extractTextFromFile(filePath, document.originalFormat, buffer);
         }
       } catch {
         text = document.metadata?.textContent || '';
