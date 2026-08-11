@@ -20,8 +20,8 @@ FROM node:18-alpine
 
 WORKDIR /app/backend
 
-# Install dumb-init and build dependencies for sharp
-RUN apk add --no-cache dumb-init python3 make g++ vips-dev
+# Install dumb-init, build deps, and Unicode fonts for PDF export
+RUN apk add --no-cache dumb-init python3 make g++ vips-dev font-noto font-noto-cjk font-noto-myanmar
 
 # Copy package files
 COPY backend/package*.json ./
